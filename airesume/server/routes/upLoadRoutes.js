@@ -10,7 +10,7 @@ const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.single('resume'), async (req, res) => {
     try {
-        
+
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
@@ -20,7 +20,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
         let text = "";
 
-     
+
         if (req.file.mimetype === "application/pdf") {
             const data = await pdfParse(buffer);
             if (!data || !data.text) {
@@ -42,20 +42,30 @@ router.post('/', upload.single('resume'), async (req, res) => {
             return res.status(400).json({ error: 'Unsupported file type' });
         }
 
-     
+
         fs.unlinkSync(filepath);
 
-        
-        const prompt = `
-Return ONLY valid JSON. No explanation.
 
+        const prompt = `
+You are an ATS system.
+
+Return STRICT JSON ONLY. No explanation. No text outside JSON.
+
+Rules:
+- Always fill ALL fields
+- Never return empty arrays
+- If data is missing, infer logically
+- make the response as detailed as possible based on the resume provided
+-make response fast, do not overthink, just give your best guess based on the resume
+
+Format:
 {
-  "score": number between 0 and 10,
-  "skills": [],
-  "missing_skills": [],
-  "strengths": [],
-  "weaknesses": [],
-  "suggestions": []
+  "score": number (0-100),
+  "skills": ["at least 5"],
+  "missing_skills": ["at least 5"],
+  "strengths": ["at least 3"],
+  "weaknesses": ["at least 3"],
+  "suggestions": ["at least 5"]
 }
 
 Analyze this resume:
@@ -63,7 +73,7 @@ Analyze this resume:
 ${text}
 `;
 
-       
+
         let results;
 
         try {
@@ -78,7 +88,7 @@ ${text}
         } catch (err) {
             console.error("Ollama error:", err.message);
 
-        
+
             results = JSON.stringify({
                 score: 70,
                 skills: ["Java", "Python"],
@@ -89,20 +99,44 @@ ${text}
             });
         }
 
-      
+
         let parsed;
+
         try {
-            parsed = JSON.parse(results);
-        } catch {
-            parsed = { raw: results };
+            let clean = results
+                .replace(/,\s*}/g, "}")
+                .replace(/,\s*]/g, "]");
+
+            const match = clean.match(/\{[\s\S]*\}/);
+
+            parsed = match ? JSON.parse(match[0]) : null;
+
+        } catch (err) {
+            console.log("Parse failed:", err.message);
+            parsed = null;
         }
-       
+
+        if (!parsed.missing_skills || parsed.missing_skills.length === 0) {
+            parsed.missing_skills = ["React", "Node.js", "Projects", "APIs", "System Design"];
+        }
+
+        if (!parsed.suggestions || parsed.suggestions.length === 0) {
+            parsed.suggestions = [
+                "Build real-world projects",
+                "Improve technical depth",
+                "Add GitHub portfolio",
+                "Highlight achievements",
+                "Optimize resume keywords"
+            ];
+        }
         res.json({
             message: "Analysis complete",
             analysis: parsed
         });
 
+
     } catch (err) {
+        parsed = null;
         console.error(err);
         res.status(500).json({
             error: 'Error processing file',
