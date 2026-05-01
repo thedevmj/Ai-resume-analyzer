@@ -4,13 +4,13 @@ const multer = require('multer');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
-const axios = require('axios');
 
 const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.single('resume'), async (req, res) => {
-    try {
+    let parsed = null;
 
+    try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
@@ -23,9 +23,7 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
         if (req.file.mimetype === "application/pdf") {
             const data = await pdfParse(buffer);
-            if (!data || !data.text) {
-                throw new Error("Failed to extract text from PDF");
-            }
+            if (!data?.text) throw new Error("Failed to extract text from PDF");
             text = data.text;
 
         } else if (
@@ -33,12 +31,11 @@ router.post('/', upload.single('resume'), async (req, res) => {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ) {
             const data = await mammoth.extractRawText({ buffer });
-            if (!data.value || !data.value.trim()) {
-                throw new Error("Failed to extract text from DOCX");
-            }
+            if (!data?.value?.trim()) throw new Error("Failed to extract text from DOCX");
             text = data.value;
 
         } else {
+            fs.unlinkSync(filepath);
             return res.status(400).json({ error: 'Unsupported file type' });
         }
 
@@ -55,13 +52,12 @@ Rules:
 - Always fill ALL fields
 - Never return empty arrays
 - If data is missing, infer logically
-- make the response as detailed as possible based on the resume provided
--make response fast, do not overthink, just give your best guess based on the resume
+- Make response detailed but fast
 
 Format:
 {
   "score": number (0-100),
-  "skills": ["at least 5"],
+  "skills": ["at least 5 seperated skills with ','"],
   "missing_skills": ["at least 5"],
   "strengths": ["at least 3"],
   "weaknesses": ["at least 3"],
@@ -77,30 +73,37 @@ ${text}
         let results;
 
         try {
-            const response = await axios.post('http://localhost:11434/api/generate', {
-                model: 'llama3',
-                prompt: prompt,
-                stream: false
+            const response = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.SAMBANOVA_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'DeepSeek-V3.1',
+                    messages: [
+                        { role: 'system', content: 'You are a resume analyzer.' },
+                        { role: 'user', content: prompt } // ✅ FIXED
+                    ]
+                })
             });
 
-            results = response.data.response;
+            const data = await response.json();
+           
+            results = data?.choices?.[0]?.message?.content;
+
+            if (!results) {
+                alert("No response from AI for the moment please try again later");
+            }
 
         } catch (err) {
-            console.error("Ollama error:", err.message);
-
-
-            results = JSON.stringify({
-                score: 70,
-                skills: ["Java", "Python"],
-                missing_skills: ["React", "Node.js"],
-                strengths: ["Good fundamentals"],
-                weaknesses: ["Lack of projects"],
-                suggestions: ["Build more real-world applications"]
+            console.error("Error calling Sambanova API:", err);
+            return res.status(500).json({
+                error: 'Error analyzing resume',
+                details: err.message
             });
         }
 
-
-        let parsed;
 
         try {
             let clean = results
@@ -116,6 +119,9 @@ ${text}
             parsed = null;
         }
 
+
+        if (!parsed) parsed = {};
+
         if (!parsed.missing_skills || parsed.missing_skills.length === 0) {
             parsed.missing_skills = ["React", "Node.js", "Projects", "APIs", "System Design"];
         }
@@ -129,14 +135,13 @@ ${text}
                 "Optimize resume keywords"
             ];
         }
+
         res.json({
             message: "Analysis complete",
             analysis: parsed
         });
 
-
     } catch (err) {
-        parsed = null;
         console.error(err);
         res.status(500).json({
             error: 'Error processing file',

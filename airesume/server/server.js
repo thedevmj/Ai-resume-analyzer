@@ -1,9 +1,11 @@
 require('dotenv').config({ path: './config/config.env' });
 const uploadRoutes = require('./routes/upLoadRoutes');
-
+const connectDb = require('./db');
 const express = require('express');
 const app = express();
 const cors = require('cors');
+
+connectDb();
 
 app.use(express.json());
 app.use(cors());
