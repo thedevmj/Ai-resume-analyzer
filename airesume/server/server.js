@@ -5,17 +5,18 @@ const connectDb = require('./db');
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 connectDb();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "http://localhost:5174"],
   credentials: true
 }));
 app.use('/upload', uploadRoutes);
 app.use('/auth',authroutes);
-
 console.log("Server file loaded");
 
 app.get('/', (req, res) => {

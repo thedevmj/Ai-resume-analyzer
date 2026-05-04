@@ -2,17 +2,36 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-export default function Login() {
+export default function Login({ setLoggedIn }) {
   const [email, setemail] = useState("");
   const [password, setpassword] = useState("");
   const [loading, setLoading] = useState(false);
- const navigate=useNavigate();
+  const navigate = useNavigate();
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const login = async (e) => {
     e.preventDefault();
 
-    
-    if (!email || !password) {
-      toast.error("Please fill in all fields");
+    // Check if email is empty
+    if (!email || email.trim() === "") {
+      toast.error("Email is required");
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    // Check if password is empty
+    if (!password) {
+      toast.error("Password is required");
       return;
     }
 
@@ -27,25 +46,24 @@ export default function Login() {
       const res = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", 
+          "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
-     
-
       if (!res.ok) {
-        toast.error ("Login failed");
+        toast.error("Invalid credentials");
         setLoading(false);
         return;
       }
-      
-      toast.success("Login successfull");
+
+      toast.success("Login successful");
+      setLoggedIn(true);
       localStorage.setItem("email", email);
       navigate("/fileupload");
       setemail("");
       setpassword("");
-
     } catch (err) {
       console.log("Error occurred in login", err.message);
       toast.error("Something went wrong");

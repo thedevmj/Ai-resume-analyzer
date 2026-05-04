@@ -4,10 +4,13 @@ const multer = require('multer');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
+const { download } = require('../controller/pdfdownload');
+const Report = require('../models/analyzereport');
+const { verifyToken } = require('../middleware/authmiddleware');
 
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/', upload.single('resume'), async (req, res) => {
+router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
     let parsed = null;
 
     try {
@@ -61,7 +64,35 @@ Format:
   "missing_skills": ["at least 5"],
   "strengths": ["at least 3"],
   "weaknesses": ["at least 3"],
-  "suggestions": ["at least 5"]
+  "suggestions": ["at least 5"],
+  
+  "name": "John Doe",
+  "email": "john@email.com",
+  "phone": "1234567890",
+  "summary": "2-3 line professional summary",
+  "skills": ["React", "Node.js", "MongoDB"],
+  "experience": [
+    {
+      "role": "Frontend Developer",
+      "company": "ABC Pvt Ltd",
+      "duration": "2022-2024",
+      "points": ["Built UI", "Improved performance"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Resume Analyzer",
+      "description": "AI-based resume analysis tool"
+    }
+  ],
+  "education": [
+    {
+      "degree": "B.Tech",
+      "college": "XYZ University",
+      "year": "2024"
+    }
+  ]
+}
 }
 
 Analyze this resume:
@@ -89,7 +120,7 @@ ${text}
             });
 
             const data = await response.json();
-           
+
             results = data?.choices?.[0]?.message?.content;
 
             if (!results) {
@@ -136,6 +167,19 @@ ${text}
             ];
         }
 
+        // Save to database
+        try {
+            const report = new Report({
+                user: req.user.id,
+                name: parsed.name || "Resume Analysis",
+                analysis: parsed,
+                score: parsed.score || 0
+            });
+            await report.save();
+        } catch (dbErr) {
+            console.log("Error saving to database:", dbErr.message);
+        }
+
         res.json({
             message: "Analysis complete",
             analysis: parsed
@@ -150,4 +194,66 @@ ${text}
     }
 });
 
+// Get user's resume history
+router.get('/history', verifyToken, async (req, res) => {
+    try {
+        const reports = await Report.find({ user: req.user.id })
+            .sort({ createdAt: -1 })
+            .select('name score createdAt _id');
+        
+        res.json({
+            success: true,
+            history: reports
+        });
+    } catch (err) {
+        console.log("Error fetching history:", err.message);
+        res.status(500).json({ error: 'Error fetching history' });
+    }
+});
+
+// Get specific report
+router.get('/report/:id', verifyToken, async (req, res) => {
+    try {
+        const report = await Report.findOne({
+            _id: req.params.id,
+            user: req.user.id
+        });
+        
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+        
+        res.json({
+            success: true,
+            report
+        });
+    } catch (err) {
+        console.log("Error fetching report:", err.message);
+        res.status(500).json({ error: 'Error fetching report' });
+    }
+});
+
+// Delete report
+router.delete('/report/:id', verifyToken, async (req, res) => {
+    try {
+        const report = await Report.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user.id
+        });
+        
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+        
+        res.json({
+            success: true,
+            message: 'Report deleted successfully'
+        });
+    } catch (err) {
+        console.log("Error deleting report:", err.message);
+        res.status(500).json({ error: 'Error deleting report' });
+    }
+});
+
+router.post('/download', download);
 module.exports = router;

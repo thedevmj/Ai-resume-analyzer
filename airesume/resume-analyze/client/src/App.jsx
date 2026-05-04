@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Upload from "./pages/Upload";
 import Home from "./components/Home";
@@ -9,6 +9,9 @@ import { Toaster } from "react-hot-toast";
 import IsLoggedin from "./security/IsLoggedin";
 
 export default function App() {
+  
+  const [loggedIn, setLoggedIn] = useState(false);
+
   return (
     <>
     <Toaster
@@ -22,7 +25,7 @@ export default function App() {
           },
         }}
       />
-      <Navbar />
+      <Navbar loggedIn={loggedIn} setLoggedIn={setLoggedIn} />
       
       <Routes>
         <Route
@@ -42,7 +45,7 @@ export default function App() {
             </>
           }
         ></Route>
-        <Route path="/Login" element={<Login />}></Route>
+        <Route path="/Login" element={<Login setLoggedIn={setLoggedIn} />}></Route>
         <Route path="/Signup" element={<Signup />}></Route>
       </Routes>
       

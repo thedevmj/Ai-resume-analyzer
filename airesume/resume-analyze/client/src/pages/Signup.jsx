@@ -1,21 +1,51 @@
 import React from "react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [email, setemail] = useState("");
   const [password, setpassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const signup = async (e) => {
     try {
       e.preventDefault();
       setLoading(true);
 
-      if (!email || !password) {
-        toast.error("Please fill in all fields");
-      } else if (email === "" || password.length < 6) {
+      // Check if email is empty
+      if (!email || email.trim() === "") {
+        toast.error("Email is required");
+        setLoading(false);
+        return;
+      }
+
+      // Validate email format
+      if (!validateEmail(email)) {
+        toast.error("Please enter a valid email address");
+        setLoading(false);
+        return;
+      }
+
+      // Check if password is empty
+      if (!password) {
+        toast.error("Password is required");
+        setLoading(false);
+        return;
+      }
+
+      // Check password length
+      if (password.length < 6) {
         toast.error("Password must be at least 6 characters long");
+        setLoading(false);
+        return;
       }
 
       const res = await fetch("http://localhost:5000/auth/register", {
@@ -29,10 +59,15 @@ export default function Signup() {
         toast.success("Account created successfully");
         setemail("");
         setpassword("");
+        setTimeout(() => navigate("/Login"), 1500);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Signup failed");
       }
       setLoading(false);
     } catch (err) {
-      console.log("Error ocuured in signup", err.message);
+      console.log("Error occurred in signup", err.message);
+      toast.error("An error occurred during signup");
       setLoading(false);
     }
   };
@@ -50,7 +85,7 @@ export default function Signup() {
           <form>
             {" "}
             <input
-              type="text"
+              type="email"
               required
               placeholder="Email"
               value={email}
@@ -60,7 +95,8 @@ export default function Signup() {
              outline-none text-gray-700 placeholder-gray-400"
             />
             <input
-            required             type="password"
+              type="password"
+              required
               placeholder="Password"
               value={password}
               onChange={(e) => setpassword(e.target.value)}
@@ -79,6 +115,15 @@ export default function Signup() {
               {loading ? "Signing up..." : "Sign up"}
             </button>
           </form>
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              className="text-blue-500 text-right underline bg-transparent border-none p-0 cursor-pointer"
+              onClick={() => navigate("/Login")}
+            >
+              Already have an account? Go to Login
+            </button>
+          </div>
         </div>
       </div>
     </>
