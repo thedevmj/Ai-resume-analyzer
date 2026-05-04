@@ -5,7 +5,8 @@ export default function Upload() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  
+  
   const handleUpload = async () => {
     if (!file) return;
 
@@ -15,7 +16,12 @@ export default function Upload() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/upload", formData);
+      const res = await axios.post("http://localhost:5000/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        withCredentials: true,
+      });
       setResult(res.data.analysis);
     } catch (err) {
       alert("Error analyzing resume");
@@ -26,7 +32,6 @@ export default function Upload() {
 
   return (
     <div className="min-h-screen bg-[#e0e5ec] flex flex-col items-center p-6">
-     
       <h1 className="text-3xl font-bold mb-8 text-gray-700">
         AI Resume Analyzer
       </h1>
