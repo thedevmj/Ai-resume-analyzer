@@ -4,7 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
-const { download } = require('../controller/pdfdownload');
+const { download } = require('../controller/resumedownload');
 const Report = require('../models/analyzereport');
 const { verifyToken } = require('../middleware/authmiddleware');
 

@@ -8,6 +8,7 @@ export default function Upload() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+  const [showFormatModal, setShowFormatModal] = useState(false);
 
   // Fetch history on component mount
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function Upload() {
     setLoading(false);
   };
 
-  const downloadResume = async () => {
+  const downloadResume = async (format = "pdf") => {
     if (!result) {
       alert("Please analyze a resume first");
       return;
@@ -97,7 +98,7 @@ export default function Upload() {
     try {
       const res = await axios.post(
         "http://localhost:5000/upload/download",
-        result,
+        { ...result, format },
         { responseType: "blob", withCredentials: true },
       );
 
@@ -105,14 +106,25 @@ export default function Upload() {
       const link = document.createElement("a");
 
       link.href = url;
-      link.setAttribute("download", "ATS_Resume.pdf");
+      
+      // Set appropriate filename based on format
+      let filename = "ATS_Resume.pdf";
+      if (format === "docx") {
+        filename = "ATS_Resume.docx";
+      } else if (format === "txt") {
+        filename = "ATS_Resume.txt";
+      }
+      
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      setShowFormatModal(false);
     } catch (err) {
       console.error("Download error:", err);
-      alert("Error downloading PDF. Check console for details.");
+      alert("Error downloading resume. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -266,16 +278,167 @@ export default function Upload() {
             </div>
           </div>
         )}
+
+       
+        {result && (
+          <div className="mt-10 w-full max-w-5xl">
+            <div className="p-6 rounded-2xl bg-linear-to-r from-[#e0e5ec] to-[#e8ecf1] shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]">
+              <div className="flex items-start gap-4 mb-4">
+                <span className="text-3xl">💼</span>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Recruiter's Perspective</h3>
+                  
+                  <div className="space-y-3 text-gray-700 text-sm leading-relaxed">
+                    {/* Overall Assessment */}
+                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner">
+                      <p className="font-semibold text-gray-800 mb-1">📊 Initial Impression:</p>
+                      <p>
+                        {result.score >= 80
+                          ? `Your resume presents a strong profile with an excellent ATS score of ${result.score}/100. Recruiters will likely proceed to review your qualifications carefully.`
+                          : result.score >= 60
+                          ? `Your resume is competitive with a score of ${result.score}/100. You have a solid foundation, but strategic improvements can significantly increase visibility.`
+                          : `Your resume scores ${result.score}/100, indicating potential gaps. Addressing key areas can dramatically improve recruiter engagement.`}
+                      </p>
+                    </div>
+
+                    {/* Strengths */}
+                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner">
+                      <p className="font-semibold text-gray-800 mb-2">✨ What Recruiters Will Like:</p>
+                      <ul className="space-y-1 ml-2">
+                        {result.strengths?.slice(0, 3).map((strength, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold">✓</span>
+                            <span>{strength}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                  
+                    {result.weaknesses?.length > 0 && (
+                      <div className="p-3 rounded-lg bg-[#ffd4d4] shadow-inner">
+                        <p className="font-semibold text-gray-800 mb-2">⚠️ Red Flags to Address:</p>
+                        <ul className="space-y-1 ml-2">
+                          {result.weaknesses?.slice(0, 3).map((weakness, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-red-600 font-bold">•</span>
+                              <span>{weakness}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                   
+                    {result.missing_skills?.length > 0 && (
+                      <div className="p-3 rounded-lg bg-[#fff4d4] shadow-inner">
+                        <p className="font-semibold text-gray-800 mb-2">🎯 High-Impact Skills to Add:</p>
+                        <p className="text-xs text-gray-600 mb-2">Adding these skills could increase your hiring potential by 30-50%:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {result.missing_skills?.slice(0, 5).map((skill, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 rounded text-xs font-semibold bg-yellow-200 text-yellow-800"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                 
+                    <div className="p-3 rounded-lg bg-[#d4f4dd] shadow-inner">
+                      <p className="font-semibold text-gray-800 mb-2">🚀 Immediate Actions (High ROI):</p>
+                      <ol className="space-y-1 ml-2 text-xs">
+                        <li className="flex items-start gap-2">
+                          <span className="font-bold text-green-700">1.</span>
+                          <span>Quantify achievements with metrics and percentages</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="font-bold text-green-700">2.</span>
+                          <span>Use industry keywords related to your target roles</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="font-bold text-green-700">3.</span>
+                          <span>Add 2-3 quantifiable project outcomes</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="font-bold text-green-700">4.</span>
+                          <span>Improve formatting consistency for better ATS compatibility</span>
+                        </li>
+                      </ol>
+                    </div>
+
+                  
+                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner border-l-4 border-blue-500">
+                      <p className="font-semibold text-gray-800 mb-1">📈 Expected Impact:</p>
+                      <p className="text-xs text-gray-700">
+                        Implementing these suggestions could boost your ATS score by 15-25 points and increase interview call rates by 40-60% within 2-4 weeks.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {result && (
           <button
-            onClick={downloadResume}
+            onClick={() => setShowFormatModal(true)}
             className="mt-8 w-full max-w-5xl py-2 rounded-xl text-gray-700 font-semibold
           bg-[#e0e5ec]
           shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]
           active:shadow-inner transition"
           >
-            {loading ? "Downloading PDF..." : "Download PDF"}
+            {loading ? "Downloading..." : "Download Resume"}
           </button>
+        )}
+
+        {/* Format Selection Modal */}
+        {showFormatModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#e0e5ec] rounded-2xl p-8 shadow-[10px_10px_20px_#d1d1d4,-10px_-10px_20px_#ffffff] max-w-md w-full mx-4">
+              <h3 className="text-2xl font-bold text-gray-700 mb-6 text-center">
+                Select Resume Format
+              </h3>
+
+              <div className="space-y-4 mb-6">
+                {[
+                  { format: "pdf", icon: "📄", label: "PDF", description: "Universal format, best for printing" },
+                  { format: "docx", icon: "📝", label: "DOCX", description: "Microsoft Word format, easily editable" },
+                  { format: "txt", icon: "📋", label: "TXT", description: "Plain text format, universal compatibility" },
+                ].map((option) => (
+                  <button
+                    key={option.format}
+                    onClick={() => downloadResume(option.format)}
+                    disabled={loading}
+                    className="w-full p-4 rounded-xl bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] hover:shadow-[7px_7px_14px_#a3b1c6,-7px_-7px_14px_#ffffff] transition-all disabled:opacity-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{option.icon}</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-gray-700">{option.label}</p>
+                          <p className="text-xs text-gray-500">{option.description}</p>
+                        </div>
+                      </div>
+                      <span className="text-gray-400">→</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowFormatModal(false)}
+                disabled={loading}
+                className="w-full py-2 rounded-xl text-gray-700 font-semibold bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-inner transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
