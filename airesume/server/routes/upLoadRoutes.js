@@ -7,8 +7,37 @@ const mammoth = require('mammoth');
 const { download } = require('../controller/resumedownload');
 const Report = require('../models/analyzereport');
 const { verifyToken } = require('../middleware/authmiddleware');
+const {
+    generateDetailedFeedback,
+    getInterviewTips,
+    getCoverLetterSuggestions,
+    getAllFeedback
+} = require('../controller/feedbackController');
 
 const upload = multer({ dest: 'uploads/' });
+
+// Validate PDF structure before parsing
+const validatePDF = (buffer) => {
+    // Check if buffer starts with PDF header
+    if (!buffer.toString('utf8', 0, 4).includes('%PDF')) {
+        throw new Error('Invalid PDF: File does not have a valid PDF header');
+    }
+
+    // Check buffer size (PDFs should typically be at least 100 bytes)
+    if (buffer.length < 100) {
+        throw new Error('Invalid PDF: File is too small to be a valid PDF');
+    }
+
+    // Check for common corruption patterns
+    const bufferStr = buffer.toString('utf8', 0, Math.min(buffer.length, 10000));
+    
+    // Try to find xref section
+    if (!bufferStr.includes('xref') && !bufferStr.includes('stream')) {
+        throw new Error('Invalid PDF: Missing required PDF structures');
+    }
+
+    return true;
+};
 
 router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
     let parsed = null;
@@ -25,9 +54,27 @@ router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
 
 
         if (req.file.mimetype === "application/pdf") {
-            const data = await pdfParse(buffer);
-            if (!data?.text) throw new Error("Failed to extract text from PDF");
-            text = data.text;
+            try {
+                // Validate PDF before parsing
+                validatePDF(buffer);
+                
+                // Attempt to parse with timeout protection
+                const parsePromise = pdfParse(buffer);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('PDF parsing timed out')), 15000)
+                );
+                
+                const data = await Promise.race([parsePromise, timeoutPromise]);
+                if (!data?.text) throw new Error("Failed to extract text from PDF");
+                text = data.text;
+            } catch (pdfError) {
+                fs.unlinkSync(filepath);
+                console.error("PDF Error:", pdfError.message);
+                return res.status(400).json({ 
+                    error: 'Invalid or corrupted PDF file',
+                    details: pdfError.message || 'The PDF file could not be processed. Please ensure it is a valid, non-corrupted PDF.'
+                });
+            }
 
         } else if (
             req.file.mimetype ===
@@ -47,55 +94,64 @@ router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
 
 
         const prompt = `
-You are an ATS system.
+You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the resume THOROUGHLY and provide a detailed score and breakdown.
 
-Return STRICT JSON ONLY. No explanation. No text outside JSON.
+SCORING RULES:
+- 90-100: Excellent - Well-organized, strong skills, quantified achievements, good keywords
+- 75-89: Good - Solid experience, mostly well-formatted, some improvements needed
+- 60-74: Fair - Basic structure but needs significant improvements in keywords, formatting, or details
+- 40-59: Poor - Missing key information, poor formatting, lack of details
+- 0-39: Very Poor - Incomplete or severely lacking
 
-Rules:
-- Always fill ALL fields
-- Never return empty arrays
-- If data is missing, infer logically
-- Make response detailed but fast
+Analyze THESE SPECIFIC FACTORS for the score:
+1. Format & Organization (clear structure, easy to scan)
+2. Skills Section (relevant, industry keywords, quantity)
+3. Experience Details (quantified results, metrics, achievements)
+4. Keywords & Optimization (ATS-friendly terms)
+5. Education & Certifications (relevant and up-to-date)
+6. Contact Information (complete and professional)
+7. Overall Professionalism (grammar, consistency, length)
 
-Format:
+Return STRICT JSON ONLY with realistic, varied scores based on the resume quality:
+
 {
-  "score": number (0-100),
-  "skills": ["at least 5 seperated skills with ','"],
-  "missing_skills": ["at least 5"],
-  "strengths": ["at least 3"],
-  "weaknesses": ["at least 3"],
-  "suggestions": ["at least 5"],
-  
-  "name": "John Doe",
-  "email": "john@email.com",
-  "phone": "1234567890",
-  "summary": "2-3 line professional summary",
-  "skills": ["React", "Node.js", "MongoDB"],
+  "score": <number 0-100 based on analysis>,
+  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "missing_skills": ["missing1", "missing2", "missing3", "missing4", "missing5"],
+  "strengths": ["strength1", "strength2", "strength3"],
+  "weaknesses": ["weakness1", "weakness2", "weakness3"],
+  "suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4", "suggestion5"],
+  "name": "Extracted name or 'Not Found'",
+  "email": "Extracted email or 'Not Found'",
+  "phone": "Extracted phone or 'Not Found'",
+  "summary": "2-3 line professional summary from resume or generated",
+  "skills": ["Extracted skill1", "Extracted skill2", "Extracted skill3"],
   "experience": [
     {
-      "role": "Frontend Developer",
-      "company": "ABC Pvt Ltd",
-      "duration": "2022-2024",
-      "points": ["Built UI", "Improved performance"]
+      "role": "Job title",
+      "company": "Company name",
+      "duration": "Years",
+      "points": ["Achievement 1", "Achievement 2"]
     }
   ],
   "projects": [
     {
-      "name": "Resume Analyzer",
-      "description": "AI-based resume analysis tool"
+      "name": "Project name",
+      "description": "Project description"
     }
   ],
   "education": [
     {
-      "degree": "B.Tech",
-      "college": "XYZ University",
-      "year": "2024"
+      "degree": "Degree name",
+      "college": "Institution name",
+      "year": "Graduation year"
     }
   ]
 }
-}
 
-Analyze this resume:
+IMPORTANT: Generate realistic scores that reflect the actual quality of the resume. Different resumes should get different scores based on their content quality, not all the same score.
+
+Resume to analyze:
 
 ${text}
 `;
@@ -153,6 +209,11 @@ ${text}
 
         if (!parsed) parsed = {};
 
+        // Ensure score is a valid number between 0-100
+        if (!parsed.score || typeof parsed.score !== 'number' || parsed.score < 0 || parsed.score > 100) {
+            parsed.score = 60; // Default if invalid
+        }
+
         if (!parsed.missing_skills || parsed.missing_skills.length === 0) {
             parsed.missing_skills = ["React", "Node.js", "Projects", "APIs", "System Design"];
         }
@@ -168,6 +229,7 @@ ${text}
         }
 
         // Save to database
+        let reportId = null;
         try {
             const report = new Report({
                 user: req.user.id,
@@ -176,13 +238,16 @@ ${text}
                 score: parsed.score || 0
             });
             await report.save();
+            reportId = report._id;
+          
         } catch (dbErr) {
             console.log("Error saving to database:", dbErr.message);
         }
 
         res.json({
             message: "Analysis complete",
-            analysis: parsed
+            analysis: parsed,
+            reportId: reportId
         });
 
     } catch (err) {
@@ -256,4 +321,11 @@ router.delete('/report/:id', verifyToken, async (req, res) => {
 });
 
 router.post('/download', download);
+
+// Feedback routes
+router.get('/feedback/:reportId', verifyToken, getAllFeedback);
+router.post('/feedback/:reportId', verifyToken, generateDetailedFeedback);
+router.get('/feedback/:reportId/interview-tips', verifyToken, getInterviewTips);
+router.get('/feedback/:reportId/cover-letter', verifyToken, getCoverLetterSuggestions);
+
 module.exports = router;

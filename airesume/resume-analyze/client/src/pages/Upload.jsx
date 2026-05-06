@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import Feedback from "../components/Feedback";
 
 export default function Upload() {
   const [file, setFile] = useState(null);
@@ -78,7 +79,7 @@ export default function Upload() {
         withCredentials: true,
       });
       setResult(res.data.analysis);
-      setSelectedHistoryItem(null);
+      setSelectedHistoryItem(res.data.reportId);
       setFile(null);
       fetchHistory(); // Refresh history
     } catch (err) {
@@ -183,7 +184,7 @@ export default function Upload() {
         </div>
       </div>
 
-      {/* Main Content */}
+     
       <div className="flex-1 flex flex-col items-center p-6">
         <h1 className="text-3xl font-bold mb-8 text-gray-700">
           AI Resume Analyzer
@@ -394,6 +395,12 @@ export default function Upload() {
           >
             {loading ? "Downloading..." : "Download Resume"}
           </button>
+        )}
+
+        {result && selectedHistoryItem && (
+          <div className="mt-10 w-full max-w-5xl">
+            <Feedback reportId={selectedHistoryItem} />
+          </div>
         )}
 
         {/* Format Selection Modal */}

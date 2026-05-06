@@ -12,6 +12,7 @@ connectDb();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
+
   origin: ["http://localhost:5173", "http://localhost:5174"],
   credentials: true
 }));
@@ -20,6 +21,7 @@ app.use('/auth',authroutes);
 console.log("Server file loaded");
 
 app.get('/', (req, res) => {
+
   res.send('Main server working');
 });
 

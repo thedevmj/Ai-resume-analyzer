@@ -15,6 +15,10 @@ const reportSchema = mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         required: true
     },
+    feedback: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
