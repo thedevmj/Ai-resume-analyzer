@@ -1,12 +1,13 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-export default function IsLoggedin({ child }) {
+export default function IsLoggedin({ children }) {
 
-const email= localStorage.getItem("email");
+const email= sessionStorage.getItem("email");
 
-    if (email.length === 0) {
-    return <Navigate to="/Login" />;
+    if (!email) {
+    return <Navigate to="/Login" replace />;
   }
-   return child;
+  
+   return children ;
 }

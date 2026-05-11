@@ -13,11 +13,11 @@ const userSchema = mongoose.Schema({
 
 })
 
-userSchema.pre('save', function () {
+userSchema.pre('save', function (next) {
     if (!this.isModified('password')) { return next(); }
     const gensalt = bcrypt.genSaltSync(10);
     this.password = bcrypt.hashSync(this.password, gensalt);
-
+    next();
 })
 
 userSchema.methods.generateToken = function () {

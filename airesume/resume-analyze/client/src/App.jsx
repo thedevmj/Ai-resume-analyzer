@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Upload from "./pages/Upload";
+import Dashboard from "./pages/Dashboard";
 import Home from "./components/Home";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { Toaster } from "react-hot-toast";
 import IsLoggedin from "./security/IsLoggedin";
+import Footer from "./components/Footer";
 
 export default function App() {
   
@@ -45,10 +47,19 @@ export default function App() {
             </>
           }
         ></Route>
+        <Route
+          path="/dashboard"
+          element={
+           <IsLoggedin>
+              <Dashboard />
+           </IsLoggedin>
+            
+          }
+        ></Route>
         <Route path="/Login" element={<Login setLoggedIn={setLoggedIn} />}></Route>
         <Route path="/Signup" element={<Signup />}></Route>
       </Routes>
-      
+      <Footer/>
     </>
   );
 }

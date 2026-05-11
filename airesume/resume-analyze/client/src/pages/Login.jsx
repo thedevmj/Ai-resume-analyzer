@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -7,13 +7,14 @@ export default function Login({ setLoggedIn }) {
   const [password, setpassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+ 
   // Email validation function
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  
   const login = async (e) => {
     e.preventDefault();
 
@@ -60,7 +61,7 @@ export default function Login({ setLoggedIn }) {
 
       toast.success("Login successful");
       setLoggedIn(true);
-      localStorage.setItem("email", email);
+      sessionStorage.setItem("email", email);
       navigate("/fileupload");
       setemail("");
       setpassword("");

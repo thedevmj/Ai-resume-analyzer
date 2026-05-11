@@ -24,6 +24,9 @@ export default function Feedback({ reportId }) {
       const feedbackRes = await axios.get(
         `http://localhost:5000/upload/feedback/${reportId}`,
         {
+          headers:{
+            "Content-Type": "application/json",
+          },
           withCredentials: true,
         }
       );
@@ -33,6 +36,9 @@ export default function Feedback({ reportId }) {
       const interviewRes = await axios.get(
         `http://localhost:5000/upload/feedback/${reportId}/interview-tips`,
         {
+          headers:{
+            "Content-Type": "application/json",
+          },
           withCredentials: true,
         }
       );
@@ -42,6 +48,9 @@ export default function Feedback({ reportId }) {
       const letterRes = await axios.get(
         `http://localhost:5000/upload/feedback/${reportId}/cover-letter`,
         {
+          headers:{
+            "Content-Type": "application/json",
+          },
           withCredentials: true,
         }
       );

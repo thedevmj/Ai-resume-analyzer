@@ -19,7 +19,6 @@ const loginuser = async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
         const token = existinguser.generateToken();
-
         res.cookie('authToken', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
