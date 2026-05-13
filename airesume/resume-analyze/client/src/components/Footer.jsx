@@ -4,6 +4,7 @@ import {
   FaLinkedin,
   FaTwitter,
   FaInstagram,
+  FaWhatsapp,
 } from "react-icons/fa";
 
 
@@ -55,10 +56,9 @@ const Footer = () => {
 
             <div className="flex gap-5">
               {[
-                { icon: <FaGithub />, link: "#" },
-                { icon: <FaLinkedin />, link: "#" },
-                { icon: <FaTwitter />, link: "#" },
-                { icon: <FaInstagram />, link: "#" },
+                { icon: <FaGithub />, link: "https://github.com/thedevmj" },
+                { icon: <FaLinkedin />, link: "https://www.linkedin.com/in/junaid-mansuri-5ab04a376?utm_source=share_via&utm_content=profile&utm_medium=member_android" },
+                 {icon : <FaWhatsapp/>, link:"https://wa.me/919649354858?text=Hello%20I%20want%20to%20know%20more" }
               ].map((social, index) => (
                 <a
                   key={index}
