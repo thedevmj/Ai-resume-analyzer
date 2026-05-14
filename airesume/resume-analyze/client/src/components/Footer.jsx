@@ -82,7 +82,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="mt-10 text-center">
           <p className="text-gray-500 text-sm">
-            © 2026 YourProject. Crafted with Soft UI Design.
+            © 2026 Ai Resume Analyzer. Crafted with Soft UI Design.
           </p>
         </div>
       </div>

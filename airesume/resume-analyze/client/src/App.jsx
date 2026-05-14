@@ -1,65 +1,107 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import Upload from "./pages/Upload";
-import Dashboard from "./pages/Dashboard";
-import Home from "./components/Home";
-import Navbar from "./components/Navbar";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import { Toaster } from "react-hot-toast";
-import IsLoggedin from "./security/IsLoggedin";
+
+import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import IsLoggedin from "./security/IsLoggedin";
+
+
+const Upload = lazy(() => import("./pages/Upload"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Home = lazy(() => import("./components/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Admindash = lazy(() => import("./admin/Admindash"));
 
 export default function App() {
-  
   const [loggedIn, setLoggedIn] = useState(false);
 
   return (
     <>
-    <Toaster
+      
+      <Toaster
         position="top-right"
         toastOptions={{
           style: {
             background: "#f0f0f3",
             color: "#555",
             borderRadius: "12px",
-            boxShadow: "6px 6px 10px #d1d1d4, -6px -6px 10px #ffffff",
+            boxShadow:
+              "6px 6px 10px #d1d1d4, -6px -6px 10px #ffffff",
           },
         }}
       />
-      <Navbar loggedIn={loggedIn} setLoggedIn={setLoggedIn} />
+
+     
+      <Navbar
+        loggedIn={loggedIn}
+        setLoggedIn={setLoggedIn}
+      />
+
       
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Home />
-            </>
-          }
-        ></Route>
-        <Route
-          path="/fileupload"
-          element={
-            <>
-              <Upload />
-            
-            </>
-          }
-        ></Route>
-        <Route
-          path="/dashboard"
-          element={
-           <IsLoggedin>
-              <Dashboard />
-           </IsLoggedin>
-            
-          }
-        ></Route>
-        <Route path="/Login" element={<Login setLoggedIn={setLoggedIn} />}></Route>
-        <Route path="/Signup" element={<Signup />}></Route>
-      </Routes>
-      <Footer/>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#e0e5ec]">
+            <div
+              className="
+                w-20 h-20 rounded-full
+                border-4 border-gray-300
+                border-t-gray-700
+                animate-spin
+                shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff]
+              "
+            />
+          </div>
+        }
+      >
+        <Routes>
+         
+          <Route
+            path="/"
+            element={<Home />}
+          />
+
+          
+          <Route
+            path="/fileupload"
+            element={<Upload />}
+          />
+
+          
+          <Route
+            path="/dashboard"
+            element={
+              <IsLoggedin>
+                <Dashboard />
+              </IsLoggedin>
+            }
+          />
+
+          
+          <Route
+            path="/Login"
+            element={
+              <Login setLoggedIn={setLoggedIn} />
+            }
+          />
+
+          
+          <Route
+            path="/Signup"
+            element={<Signup />}
+          />
+
+          {/* ADMIN */}
+          <Route
+            path="/admindash"
+            element={<Admindash />}
+          />
+        </Routes>
+      </Suspense>
+
+      {/* FOOTER */}
+      <Footer />
     </>
   );
 }
