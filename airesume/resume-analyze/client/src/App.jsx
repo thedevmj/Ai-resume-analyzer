@@ -100,7 +100,7 @@ export default function App() {
         </Routes>
       </Suspense>
 
-      {/* FOOTER */}
+      
       <Footer />
     </>
   );
