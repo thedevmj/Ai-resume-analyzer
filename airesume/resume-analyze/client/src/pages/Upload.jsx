@@ -1,8 +1,25 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useRef } from "react";
+import { axiosClient as axios } from "../api/axiosClient";
+import { gsap } from "gsap";
+import {
+  FaBriefcase,
+  FaCheck,
+  FaFilePdf,
+  FaFileWord,
+  FaFileAlt,
+  FaArrowRight,
+} from "react-icons/fa";
 import Feedback from "../components/Feedback";
+import { API_URL } from "../config";
+import useSEO from "../hooks/useSEO";
+
+const card = "bg-[#241814] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.4)]";
 
 export default function Upload() {
+  useSEO({
+    title: "Analyze Resume",
+    description: "Upload your resume and get an instant AI-powered ATS score, feedback, missing skills and interview tips.",
+  });
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -10,16 +27,12 @@ export default function Upload() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [showFormatModal, setShowFormatModal] = useState(false);
-
-  // Fetch history on component mount
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  const resultsRef = useRef(null);
 
   const fetchHistory = async () => {
     setHistoryLoading(true);
     try {
-      const res = await axios.get("http://localhost:5000/upload/history", {
+      const res = await axios.get(`${API_URL}/upload/history`, {
         withCredentials: true,
       });
       setHistory(res.data.history || []);
@@ -29,17 +42,41 @@ export default function Upload() {
     setHistoryLoading(false);
   };
 
+  // Fetch history on component mount
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchHistory();
+  }, []);
+
+  // Animate results grid when analysis arrives
+  useEffect(() => {
+    if (result && resultsRef.current) {
+      gsap.fromTo(
+        resultsRef.current.children,
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          ease: "power3.out",
+          stagger: 0.12,
+          overwrite: "auto",
+        },
+      );
+    }
+  }, [result]);
+
   const loadHistoryItem = async (itemId) => {
     try {
       const res = await axios.get(
-        `http://localhost:5000/upload/report/${itemId}`,
+`${API_URL}/upload/report/${itemId}`,
         {
           withCredentials: true,
         },
       );
       setResult(res.data.report.analysis);
       setSelectedHistoryItem(itemId);
-    } catch (err) {
+    } catch {
       alert("Error loading report");
     }
   };
@@ -47,7 +84,7 @@ export default function Upload() {
   const deleteHistoryItem = async (itemId, e) => {
     e.stopPropagation();
     try {
-      await axios.delete(`http://localhost:5000/upload/report/${itemId}`, {
+      await axios.delete(`${API_URL}/upload/report/${itemId}`, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -58,7 +95,7 @@ export default function Upload() {
         setResult(null);
         setSelectedHistoryItem(null);
       }
-    } catch (err) {
+    } catch {
       alert("Error deleting report");
     }
   };
@@ -72,7 +109,7 @@ export default function Upload() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/upload", formData, {
+      const res = await axios.post(`${API_URL}/upload`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -82,7 +119,7 @@ export default function Upload() {
       setSelectedHistoryItem(res.data.reportId);
       setFile(null);
       fetchHistory(); // Refresh history
-    } catch (err) {
+    } catch {
       alert("Error analyzing resume");
     }
 
@@ -98,7 +135,7 @@ export default function Upload() {
     setLoading(true);
     try {
       const res = await axios.post(
-        "http://localhost:5000/upload/download",
+        "${API_URL}/upload/download",
         { ...result, format },
         { responseType: "blob", withCredentials: true },
       );
@@ -131,51 +168,55 @@ export default function Upload() {
     }
   };
   return (
-    <div className="min-h-screen bg-[#e0e5ec] flex">
+    <div className="min-h-screen bg-[#1b120f] flex">
      
-      <div className="w-80 bg-[#e0e5ec] shadow-lg overflow-y-auto border-r-2 border-[#a3b1c6]">
+      <div className="w-80 bg-[#201511]/95 shadow-lg overflow-y-auto border-r border-white/10">
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-700 mb-4">
+          <h2 className="text-2xl font-bold text-white mb-4">
             Resume History
           </h2>
 
           {historyLoading ? (
-            <p className="text-gray-600">Loading history...</p>
+            <div className="space-y-3">
+              <div className="h-16 shimmer rounded-xl" />
+              <div className="h-16 shimmer rounded-xl" />
+              <div className="h-16 shimmer rounded-xl" />
+            </div>
           ) : history.length === 0 ? (
-            <p className="text-gray-500 text-sm">No resume history yet</p>
+            <p className="text-stone-500 text-sm">No resume history yet</p>
           ) : (
             <div className="space-y-3">
               {history.map((item) => (
                 <div
                   key={item._id}
                   onClick={() => loadHistoryItem(item._id)}
-                  className={`p-4 rounded-xl cursor-pointer transition ${
+                  className={`p-4 rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] border ${
                     selectedHistoryItem === item._id
-                      ? "bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
-                      : "bg-[#e0e5ec] shadow-[2px_2px_5px_#a3b1c6,-2px_-2px_5px_#ffffff] hover:shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]"
+                      ? "bg-[#2e1c16] border-rose-500/60 shadow-[0_0_20px_rgba(225,29,72,0.25)]"
+                      : "bg-[#241814] border-white/10 hover:border-white/25"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-700 truncate">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white truncate">
                         {item.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-stone-500">
                         {new Date(item.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <button
                       onClick={(e) => deleteHistoryItem(item._id, e)}
-                      className="ml-2 px-2 py-1 rounded text-xs bg-red-300 text-red-800 hover:bg-red-400 transition"
+                      className="ml-2 px-2 py-1 rounded text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30 transition shrink-0"
                     >
                       Delete
                     </button>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold text-lg">
                       {item.score}
                     </div>
-                    <span className="ml-2 text-sm text-gray-600">/ 100</span>
+                    <span className="ml-2 text-sm text-stone-400">/ 100</span>
                   </div>
                 </div>
               ))}
@@ -186,56 +227,79 @@ export default function Upload() {
 
      
       <div className="flex-1 flex flex-col items-center p-6">
-        <h1 className="text-3xl font-bold mb-8 text-gray-700">
+        <h1 className="text-3xl font-bold mb-8 text-white">
           AI Resume Analyzer
         </h1>
 
         <div
-          className="p-6 rounded-2xl w-full max-w-xl bg-[#e0e5ec]
-        shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+          className={`p-6 rounded-2xl w-full max-w-xl ${card}`}
         >
-          <input
-            type="file"
-            className="mb-4 w-full p-3 rounded-xl bg-[#e0e5ec] outline-none
-          shadow-inner"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
+          <label className="block mb-4">
+            <span className="block text-sm font-semibold text-stone-300 mb-2">
+              Upload your resume (PDF / DOCX)
+            </span>
+            <input
+              type="file"
+              accept=".pdf,.docx"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="w-full p-3 rounded-xl bg-[#1e140f] border border-white/10 outline-none cursor-pointer text-stone-300 file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-none file:bg-white/10 file:text-white file:font-semibold file:cursor-pointer file:transition-all file:duration-300 file:hover:bg-white/20"
+            />
+          </label>
 
           <button
             onClick={handleUpload}
-            className="w-full py-2 rounded-xl text-gray-700 font-semibold
-          bg-[#e0e5ec]
-          shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]
-          active:shadow-inner transition"
+            disabled={loading || !file}
+            className="w-full py-3 rounded-xl text-white font-semibold
+          bg-gradient-to-r from-red-600 to-rose-700
+          shadow-[0_8px_30px_rgba(225,29,72,0.4)]
+          hover:from-red-500 hover:to-rose-600
+          hover:scale-[1.01]
+          transition-all duration-300
+          disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Analyzing..." : "Analyze Resume"}
+            {loading ? (
+              <span className="inline-flex items-center gap-2 justify-center">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Analyzing...
+              </span>
+            ) : (
+              "Analyze Resume"
+            )}
           </button>
+          {file && !loading && (
+            <p className="mt-3 text-xs text-stone-400 flex items-center justify-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              {file.name} selected
+            </p>
+          )}
         </div>
 
         {result && (
-          <div className="mt-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div ref={resultsRef} className="mt-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Score */}
             <div
-              className="p-6 rounded-2xl text-center bg-[#e0e5ec]
-            shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+              className={`p-6 rounded-2xl text-center ${card} hover:border-rose-500/40 hover:-translate-y-1 transition-all duration-300`}
             >
-              <h2 className="text-lg text-gray-600 mb-2">ATS Score</h2>
-              <p className="text-5xl font-bold text-gray-700">
+              <h2 className="text-lg text-stone-300 mb-2">ATS Score</h2>
+              <p className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-rose-500">
                 {result.score}/100
               </p>
+              {result.score >= 70 && (
+                <span className="mt-3 inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  Great score!
+                </span>
+              )}
             </div>
 
             <div
-              className="p-6 rounded-2xl bg-[#e0e5ec]
-            shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+              className={`p-6 rounded-2xl ${card} hover:border-rose-500/40 hover:-translate-y-1 transition-all duration-300`}
             >
-              <h2 className="text-lg text-gray-700 mb-3">Skills</h2>
+              <h2 className="text-lg text-amber-50 mb-3">Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {result.skills?.map((s, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1 rounded-full text-sm bg-[#e0e5ec]
-                  shadow-inner text-gray-700"
+                    className="px-3 py-1 rounded-full text-sm bg-white/5 border border-white/10 text-rose-300 hover:bg-white/10 hover:scale-110 transition-all duration-200"
                   >
                     {s}
                   </span>
@@ -244,16 +308,14 @@ export default function Upload() {
             </div>
 
             <div
-              className="p-6 rounded-2xl bg-[#e0e5ec]
-            shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+              className={`p-6 rounded-2xl ${card} hover:border-rose-500/40 hover:-translate-y-1 transition-all duration-300`}
             >
-              <h2 className="text-lg text-gray-700 mb-3">Missing Skills</h2>
+              <h2 className="text-lg text-amber-50 mb-3">Missing Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {result.missing_skills?.map((s, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1 rounded-full text-sm bg-[#e0e5ec]
-                  shadow-inner text-gray-600"
+                    className="px-3 py-1 rounded-full text-sm bg-amber-500/15 text-amber-300 border border-amber-400/20 hover:scale-110 transition-transform duration-200"
                   >
                     {s}
                   </span>
@@ -262,15 +324,14 @@ export default function Upload() {
             </div>
 
             <div
-              className="p-6 rounded-2xl bg-[#e0e5ec]
-            shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]"
+              className={`p-6 rounded-2xl ${card} hover:border-rose-500/40 hover:-translate-y-1 transition-all duration-300`}
             >
-              <h2 className="text-lg text-gray-700 mb-3">Suggestions</h2>
+              <h2 className="text-lg text-amber-50 mb-3">Suggestions</h2>
               <ul className="space-y-2">
                 {result.suggestions?.map((s, i) => (
                   <li
                     key={i}
-                    className="p-2 rounded-lg bg-[#e0e5ec] shadow-inner text-gray-600"
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-stone-300 text-sm"
                   >
                     {s}
                   </li>
@@ -282,17 +343,17 @@ export default function Upload() {
 
        
         {result && (
-          <div className="mt-10 w-full max-w-5xl">
-            <div className="p-6 rounded-2xl bg-linear-to-r from-[#e0e5ec] to-[#e8ecf1] shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff]">
+          <div className="mt-10 w-full max-w-5xl animate-fade-up">
+            <div className="p-6 rounded-2xl bg-[#241814] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
               <div className="flex items-start gap-4 mb-4">
-                <span className="text-3xl">💼</span>
+                <span className="text-3xl text-amber-200"><FaBriefcase /></span>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">Recruiter's Perspective</h3>
+                  <h3 className="text-xl font-bold text-white mb-3">Recruiter's Perspective</h3>
                   
-                  <div className="space-y-3 text-gray-700 text-sm leading-relaxed">
+                  <div className="space-y-3 text-stone-300 text-sm leading-relaxed">
                     {/* Overall Assessment */}
-                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner">
-                      <p className="font-semibold text-gray-800 mb-1">📊 Initial Impression:</p>
+                    <div className="p-3 rounded-lg bg-white/5 border-l-4 border-rose-500">
+                      <p className="font-semibold text-amber-50 mb-1">Initial Impression:</p>
                       <p>
                         {result.score >= 80
                           ? `Your resume presents a strong profile with an excellent ATS score of ${result.score}/100. Recruiters will likely proceed to review your qualifications carefully.`
@@ -303,12 +364,12 @@ export default function Upload() {
                     </div>
 
                     {/* Strengths */}
-                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner">
-                      <p className="font-semibold text-gray-800 mb-2">✨ What Recruiters Will Like:</p>
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border-l-4 border-emerald-400">
+                      <p className="font-semibold text-white mb-2">What Recruiters Will Like:</p>
                       <ul className="space-y-1 ml-2">
                         {result.strengths?.slice(0, 3).map((strength, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="text-green-600 font-bold">✓</span>
+                            <span className="text-emerald-400 font-bold"><FaCheck /></span>
                             <span>{strength}</span>
                           </li>
                         ))}
@@ -317,12 +378,12 @@ export default function Upload() {
 
                   
                     {result.weaknesses?.length > 0 && (
-                      <div className="p-3 rounded-lg bg-[#ffd4d4] shadow-inner">
-                        <p className="font-semibold text-gray-800 mb-2">⚠️ Red Flags to Address:</p>
+                      <div className="p-3 rounded-lg bg-red-500/10 border-l-4 border-red-400">
+                        <p className="font-semibold text-white mb-2">Red Flags to Address:</p>
                         <ul className="space-y-1 ml-2">
                           {result.weaknesses?.slice(0, 3).map((weakness, i) => (
                             <li key={i} className="flex items-start gap-2">
-                              <span className="text-red-600 font-bold">•</span>
+                              <span className="text-red-400 font-bold">•</span>
                               <span>{weakness}</span>
                             </li>
                           ))}
@@ -330,16 +391,16 @@ export default function Upload() {
                       </div>
                     )}
 
-                   
+                  
                     {result.missing_skills?.length > 0 && (
-                      <div className="p-3 rounded-lg bg-[#fff4d4] shadow-inner">
-                        <p className="font-semibold text-gray-800 mb-2">🎯 High-Impact Skills to Add:</p>
-                        <p className="text-xs text-gray-600 mb-2">Adding these skills could increase your hiring potential by 30-50%:</p>
+                      <div className="p-3 rounded-lg bg-amber-500/10 border-l-4 border-amber-400">
+                        <p className="font-semibold text-white mb-2">High-Impact Skills to Add:</p>
+                        <p className="text-xs text-stone-400 mb-2">Adding these skills could increase your hiring potential by 30-50%:</p>
                         <div className="flex flex-wrap gap-2">
                           {result.missing_skills?.slice(0, 5).map((skill, i) => (
                             <span
                               key={i}
-                              className="px-2 py-1 rounded text-xs font-semibold bg-yellow-200 text-yellow-800"
+                              className="px-2 py-1 rounded text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/20"
                             >
                               {skill}
                             </span>
@@ -349,32 +410,32 @@ export default function Upload() {
                     )}
 
                  
-                    <div className="p-3 rounded-lg bg-[#d4f4dd] shadow-inner">
-                      <p className="font-semibold text-gray-800 mb-2">🚀 Immediate Actions (High ROI):</p>
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border-l-4 border-emerald-400">
+                      <p className="font-semibold text-white mb-2">Immediate Actions (High ROI):</p>
                       <ol className="space-y-1 ml-2 text-xs">
                         <li className="flex items-start gap-2">
-                          <span className="font-bold text-green-700">1.</span>
+                          <span className="font-bold text-emerald-400">1.</span>
                           <span>Quantify achievements with metrics and percentages</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="font-bold text-green-700">2.</span>
+                          <span className="font-bold text-emerald-400">2.</span>
                           <span>Use industry keywords related to your target roles</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="font-bold text-green-700">3.</span>
+                          <span className="font-bold text-emerald-400">3.</span>
                           <span>Add 2-3 quantifiable project outcomes</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="font-bold text-green-700">4.</span>
+                          <span className="font-bold text-emerald-400">4.</span>
                           <span>Improve formatting consistency for better ATS compatibility</span>
                         </li>
                       </ol>
                     </div>
 
                   
-                    <div className="p-3 rounded-lg bg-[#e0e5ec] shadow-inner border-l-4 border-blue-500">
-                      <p className="font-semibold text-gray-800 mb-1">📈 Expected Impact:</p>
-                      <p className="text-xs text-gray-700">
+                    <div className="p-3 rounded-lg bg-white/5 border-l-4 border-rose-500">
+                      <p className="font-semibold text-amber-50 mb-1">Expected Impact:</p>
+                      <p className="text-xs text-stone-400">
                         Implementing these suggestions could boost your ATS score by 15-25 points and increase interview call rates by 40-60% within 2-4 weeks.
                       </p>
                     </div>
@@ -388,50 +449,54 @@ export default function Upload() {
         {result && (
           <button
             onClick={() => setShowFormatModal(true)}
-            className="mt-8 w-full max-w-5xl py-2 rounded-xl text-gray-700 font-semibold
-          bg-[#e0e5ec]
-          shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff]
-          active:shadow-inner transition"
+            disabled={loading}
+            className="mt-8 w-full max-w-5xl py-3 rounded-xl text-white font-semibold
+          bg-gradient-to-r from-red-600 to-rose-700
+          shadow-[0_8px_30px_rgba(225,29,72,0.4)]
+          hover:from-red-500 hover:to-rose-600
+          hover:scale-[1.01]
+          transition-all duration-300 disabled:opacity-60"
           >
             {loading ? "Downloading..." : "Download Resume"}
           </button>
         )}
 
         {result && selectedHistoryItem && (
-          <div className="mt-10 w-full max-w-5xl">
+          <div className="mt-10 w-full max-w-5xl animate-fade-up">
             <Feedback reportId={selectedHistoryItem} />
           </div>
         )}
 
         {/* Format Selection Modal */}
         {showFormatModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-[#e0e5ec] rounded-2xl p-8 shadow-[10px_10px_20px_#d1d1d4,-10px_-10px_20px_#ffffff] max-w-md w-full mx-4">
-              <h3 className="text-2xl font-bold text-gray-700 mb-6 text-center">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-[#241814] border border-white/10 rounded-2xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] max-w-md w-full mx-4 animate-scale-in">
+              <h3 className="text-2xl font-bold text-white mb-6 text-center">
                 Select Resume Format
               </h3>
 
               <div className="space-y-4 mb-6">
                 {[
-                  { format: "pdf", icon: "📄", label: "PDF", description: "Universal format, best for printing" },
-                  { format: "docx", icon: "📝", label: "DOCX", description: "Microsoft Word format, easily editable" },
-                  { format: "txt", icon: "📋", label: "TXT", description: "Plain text format, universal compatibility" },
-                ].map((option) => (
+                  { format: "pdf", icon: <FaFilePdf />, label: "PDF", description: "Universal format, best for printing" },
+                  { format: "docx", icon: <FaFileWord />, label: "DOCX", description: "Microsoft Word format, easily editable" },
+                  { format: "txt", icon: <FaFileAlt />, label: "TXT", description: "Plain text format, universal compatibility" },
+                ].map((option, idx) => (
                   <button
                     key={option.format}
                     onClick={() => downloadResume(option.format)}
                     disabled={loading}
-                    className="w-full p-4 rounded-xl bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] hover:shadow-[7px_7px_14px_#a3b1c6,-7px_-7px_14px_#ffffff] transition-all disabled:opacity-50"
+                    className="group w-full p-4 rounded-xl bg-[#1e140f] border border-white/10 hover:border-rose-500/40 hover:bg-white/5 hover:scale-[1.02] transition-all duration-300 disabled:opacity-50"
+                    style={{ animationDelay: `${idx * 80}ms` }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="text-3xl">{option.icon}</span>
+                        <span className="text-3xl text-amber-200 group-hover:text-amber-100 transition-colors duration-300">{option.icon}</span>
                         <div className="text-left">
-                          <p className="font-semibold text-gray-700">{option.label}</p>
-                          <p className="text-xs text-gray-500">{option.description}</p>
+                          <p className="font-semibold text-white">{option.label}</p>
+                          <p className="text-xs text-stone-400">{option.description}</p>
                         </div>
                       </div>
-                      <span className="text-gray-400">→</span>
+                      <span className="text-stone-500 group-hover:text-amber-200 transition-colors duration-300"><FaArrowRight /></span>
                     </div>
                   </button>
                 ))}
@@ -440,7 +505,7 @@ export default function Upload() {
               <button
                 onClick={() => setShowFormatModal(false)}
                 disabled={loading}
-                className="w-full py-2 rounded-xl text-gray-700 font-semibold bg-[#e0e5ec] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-inner transition disabled:opacity-50"
+                className="w-full py-2 rounded-xl text-stone-300 font-semibold bg-white/5 border border-white/10 hover:border-red-500/40 hover:text-red-300 transition-all duration-300 disabled:opacity-50"
               >
                 Cancel
               </button>

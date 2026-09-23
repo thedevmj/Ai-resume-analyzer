@@ -18,15 +18,18 @@ const userSchema = mongoose.Schema({
 
 })
 
-userSchema.pre('save', function (next) {
-    if (!this.isModified('password')) { return next(); }
+userSchema.pre('save', function () {
+    if (!this.isModified('password')) { return; }
     const gensalt = bcrypt.genSaltSync(10);
     this.password = bcrypt.hashSync(this.password, gensalt);
-    next();
 })
 
 userSchema.methods.generateToken = function () {
-    return jwt.sign({ id: this._id, email: this.email }, process.env.jwt_secret, { expiresIn: process.env.jwt_expire });
+    return jwt.sign({ id: this._id, email: this.email, role: this.role }, process.env.jwt_secret, { expiresIn: process.env.jwt_expire });
+}
+
+userSchema.methods.generateRefreshToken = function () {
+    return jwt.sign({ id: this._id, email: this.email, role: this.role }, process.env.jwt_refresh_secret, { expiresIn: process.env.jwt_refresh_expire });
 }
 
 userSchema.methods.comparePassword = function (password) {

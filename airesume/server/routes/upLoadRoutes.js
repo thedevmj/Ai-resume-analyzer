@@ -8,6 +8,11 @@ const { download } = require('../controller/resumedownload');
 const Report = require('../models/analyzereport');
 const { verifyToken } = require('../middleware/authmiddleware');
 const {
+    analysisLimiter,
+    feedbackLimiter,
+    downloadLimiter
+} = require('../middleware/rateLimiter');
+const {
     generateDetailedFeedback,
     getInterviewTips,
     getCoverLetterSuggestions,
@@ -41,8 +46,38 @@ const validatePDF = (buffer) => {
 };
 
 // Fallback analysis when API fails
+const detectRole = (text) => {
+    const t = text.toLowerCase();
+    const roleKeywords = [
+        { role: 'Machine Learning Engineer', keywords: ['machine learning', 'llm', 'genai', 'generative ai', 'model training', 'tensorflow', 'pytorch', 'mlops'] },
+        { role: 'Data Scientist', keywords: ['data science', 'analytics', 'statistics', 'pandas', 'numpy', 'tableau', 'power bi', 'python'] },
+        { role: 'Data Engineer', keywords: ['data engineer', 'etl', 'spark', 'kafka', 'airflow', 'data warehouse'] },
+        { role: 'DevOps Engineer', keywords: ['devops', 'ci/cd', 'jenkins', 'docker', 'kubernetes', 'terraform', 'aws', 'azure'] },
+        { role: 'Backend Engineer', keywords: ['backend', 'node.js', 'express', 'spring', 'java', 'rest api', 'database', 'sql'] },
+        { role: 'Frontend Developer', keywords: ['frontend', 'react', 'angular', 'vue', 'next.js', 'typescript', 'css', 'html'] },
+        { role: 'Mobile Developer', keywords: ['mobile', 'android', 'ios', 'flutter', 'react native', 'swift', 'kotlin'] },
+        { role: 'Full Stack Developer', keywords: ['full stack', 'mern', 'mean', 'frontend and backend', 'api development'] },
+        { role: 'Product Manager', keywords: ['product manager', 'product owner', 'roadmap', 'stakeholder', 'agile', 'scrum'] },
+        { role: 'Software Engineer', keywords: ['software engineer', 'developer', 'programming', 'software development'] },
+        { role: 'Cloud Engineer', keywords: ['cloud', 'aws', 'azure', 'gcp', 'serverless', 'infrastructure'] },
+        { role: 'Cybersecurity Analyst', keywords: ['cyber', 'security', 'threat', 'penetration', 'siem', 'compliance'] },
+    ];
+
+    let bestRole = 'Software Engineer';
+    let bestScore = 0;
+    for (const entry of roleKeywords) {
+        const score = entry.keywords.reduce((acc, kw) => (t.includes(kw) ? acc + 1 : acc), 0);
+        if (score > bestScore) {
+            bestScore = score;
+            bestRole = entry.role;
+        }
+    }
+    return bestRole;
+};
+
 const createFallbackAnalysis = (text) => {
     const textLower = text.toLowerCase();
+    const targetRole = detectRole(text);
     
     // Extract basic info
     const emailMatch = text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/);
@@ -63,6 +98,13 @@ const createFallbackAnalysis = (text) => {
         name: "Resume Analysis",
         email: emailMatch ? emailMatch[0] : "Not found",
         phone: phoneMatch ? `${phoneMatch[1]}-${phoneMatch[2]}-${phoneMatch[3]}` : "Not found",
+        target_role: targetRole,
+        market_demand: score >= 70 ? "High" : score >= 50 ? "Medium" : "Low",
+        job_market_insights: [
+            `Role detected: ${targetRole}. 2026 demand for this role remains strong, with AI/LLM familiarity increasingly expected.`,
+            "Employers now prioritize practical, project-based evidence of AI, cloud, and automation skills.",
+            "Quantified achievements with business impact are the strongest differentiators for ATS screening."
+        ],
         score: score,
         summary: text.substring(0, 200),
         skills: extractSkills(text),
@@ -111,7 +153,7 @@ const extractSkills = (text) => {
     return found.length > 0 ? found : ['Communication', 'Problem Solving', 'Team Collaboration'];
 };
 
-router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
+router.post('/', analysisLimiter, verifyToken, upload.single('resume'), async (req, res) => {
     let parsed = null;
 
     try {
@@ -166,30 +208,38 @@ router.post('/', verifyToken, upload.single('resume'), async (req, res) => {
 
 
         const prompt = `
-You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the resume THOROUGHLY and provide a detailed score and breakdown.
+You are an expert ATS (Applicant Tracking System) resume analyzer and career advisor with up-to-date knowledge of the current (2026) job market.
 
-SCORING RULES:
-- 90-100: Excellent - Well-organized, strong skills, quantified achievements, good keywords
-- 75-89: Good - Solid experience, mostly well-formatted, some improvements needed
-- 60-74: Fair - Basic structure but needs significant improvements in keywords, formatting, or details
-- 40-59: Poor - Missing key information, poor formatting, lack of details
+STEP 1 — ROLE DETECTION:
+Analyze the resume and AUTO-DETECT the candidate's most likely target role(s) from the content (most recent job title, skills, projects, summary, education). Pick a SINGLE, commonly-recognized job title (e.g. "Full Stack Developer", "Frontend Developer", "Data Scientist", "DevOps Engineer", "Product Manager", "Backend Engineer", "Machine Learning Engineer", "Mobile Developer").
+
+STEP 2 — SCORING (role-aware & current-market-aware):
+Score the resume 0-100 FOR THE DETECTED ROLE, against what recruiters and ATS filters actually look for in today's (2026) market:
+- 90-100: Excellent - ATS-ready, quantified achievements, in-demand 2026 keywords for the role
+- 75-89: Good - Solid experience, mostly ATS-optimized, minor gaps vs. current market
+- 60-74: Fair - Basic structure, missing modern/role-critical keywords or detail
+- 40-59: Poor - Missing key info, weak format, outdated skills
 - 0-39: Very Poor - Incomplete or severely lacking
 
-Analyze THESE SPECIFIC FACTORS for the score:
-1. Format & Organization (clear structure, easy to scan)
-2. Skills Section (relevant, industry keywords, quantity)
-3. Experience Details (quantified results, metrics, achievements)
-4. Keywords & Optimization (ATS-friendly terms)
-5. Education & Certifications (relevant and up-to-date)
-6. Contact Information (complete and professional)
-7. Overall Professionalism (grammar, consistency, length)
+Score THESE factors with current-market expectations for the detected role:
+1. Format & ATS-friendliness (standard sections, scannable, no tables/embedded images)
+2. Role-relevant skills (match against in-demand 2026 tech — e.g. AI/LLM integration & prompt engineering, cloud & serverless, data engineering, MLOps, automation, system design, cybersecurity — whenever relevant to the role)
+3. Experience depth (quantified results, metrics, business impact, "action verb + metric" bullets)
+4. Keyword optimization (current industry terminology, not dated terms)
+5. Education & certifications (relevant and up-to-date)
+6. Contact info, grammar, and overall professionalism
 
-Return STRICT JSON ONLY with realistic, varied scores based on the resume quality:
+missing_skills AND suggestions MUST be tailored to the detected role and the CURRENT 2026 market (call out in-demand trends only when relevant, e.g. AI tooling, cloud-native, data literacy, automation, security).
+
+Return STRICT JSON ONLY with this EXACT structure:
 
 {
-  "score": <number 0-100 based on analysis>,
+  "target_role": "auto-detected job title",
+  "score": <number 0-100 based on the analysis>,
+  "market_demand": "High" or "Medium" or "Low",
   "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
-  "missing_skills": ["missing1", "missing2", "missing3", "missing4", "missing5"],
+  "missing_skills": ["role-specific + current-market skill1", "skill2", "skill3", "skill4", "skill5"],
+  "job_market_insights": ["1-line takeaway about 2026 hiring trends for this role", "trend2", "trend3"],
   "strengths": ["strength1", "strength2", "strength3"],
   "weaknesses": ["weakness1", "weakness2", "weakness3"],
   "suggestions": ["suggestion1", "suggestion2", "suggestion3", "suggestion4", "suggestion5"],
@@ -197,7 +247,6 @@ Return STRICT JSON ONLY with realistic, varied scores based on the resume qualit
   "email": "Extracted email or 'Not Found'",
   "phone": "Extracted phone or 'Not Found'",
   "summary": "2-3 line professional summary from resume or generated",
-  "skills": ["Extracted skill1", "Extracted skill2", "Extracted skill3"],
   "experience": [
     {
       "role": "Job title",
@@ -221,7 +270,11 @@ Return STRICT JSON ONLY with realistic, varied scores based on the resume qualit
   ]
 }
 
-IMPORTANT: Generate realistic scores that reflect the actual quality of the resume. Different resumes should get different scores based on their content quality, not all the same score.
+Rules:
+- Only extract data that is actually present in the resume. Do NOT invent names, companies, or achievements.
+- Generate realistic, VARIED scores based on the actual quality of the resume.
+- If a role is not obvious, infer the best-fit from the dominant skills, projects, and recent experience.
+- STRICT JSON ONLY. No explanation. No markdown. No text outside the JSON object.
 
 Resume to analyze:
 
@@ -236,14 +289,14 @@ ${text}
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-            const response = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.SAMBANOVA_API_KEY}`,
+                    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'DeepSeek-V3.1',
+                    model: 'openai/gpt-oss-120b',
                     messages: [
                         { role: 'system', content: 'You are a professional resume analyzer.' },
                         { role: 'user', content: prompt }
@@ -262,12 +315,12 @@ ${text}
             results = data?.choices?.[0]?.message?.content;
 
             if (!results) {
-                console.warn("No response content from Sambanova API, using fallback");
+                console.warn("No response content from Groq API, using fallback");
                 results = null;
             }
 
         } catch (err) {
-            console.error("Error calling Sambanova API:", err.message);
+            console.error("Error calling Groq API:", err.message);
             console.warn("Falling back to local analysis...");
             results = null;
         }
@@ -301,6 +354,21 @@ ${text}
 
         if (!parsed.missing_skills || parsed.missing_skills.length === 0) {
             parsed.missing_skills = ["React", "Node.js", "Projects", "APIs", "System Design"];
+        }
+
+        if (!parsed.target_role) {
+            parsed.target_role = detectRole(text);
+        }
+
+        if (!parsed.market_demand) {
+            parsed.market_demand = parsed.score >= 70 ? "High" : parsed.score >= 50 ? "Medium" : "Low";
+        }
+
+        if (!parsed.job_market_insights || parsed.job_market_insights.length === 0) {
+            parsed.job_market_insights = [
+                `Role detected: ${parsed.target_role}. The 2026 market increasingly rewards candidates who pair core skills with AI/LLM fluency.`,
+                "Recruiters expect quantifiable, project-based evidence of impact rather than generic descriptions."
+            ];
         }
 
         if (!parsed.suggestions || parsed.suggestions.length === 0) {
@@ -405,11 +473,11 @@ router.delete('/report/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.post('/download', download);
+router.post('/download', downloadLimiter, verifyToken, download);
 
 // Feedback routes
-router.get('/feedback/:reportId', verifyToken, getAllFeedback);
-router.post('/feedback/:reportId', verifyToken, generateDetailedFeedback);
+router.get('/feedback/:reportId', feedbackLimiter, verifyToken, getAllFeedback);
+router.post('/feedback/:reportId', feedbackLimiter, verifyToken, generateDetailedFeedback);
 router.get('/feedback/:reportId/interview-tips', verifyToken, getInterviewTips);
 router.get('/feedback/:reportId/cover-letter', verifyToken, getCoverLetterSuggestions);
 

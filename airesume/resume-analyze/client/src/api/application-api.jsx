@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_URL } from "../config";
 
-const login_url="http://localhost:5000/auth/";
+const login_url=`${API_URL}/auth/`;
 
 export const createuser=(data)=>{
 return axios.post(`${login_url}register`,data);

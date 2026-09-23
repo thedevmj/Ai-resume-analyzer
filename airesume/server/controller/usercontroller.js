@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const { setAuthCookies } = require('../utils/cookieutil');
 
 
 const loginuser = async (req, res) => {
@@ -19,19 +20,15 @@ const loginuser = async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
         const token = existinguser.generateToken();
-        res.cookie('authToken', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        })
+        const refreshToken = existinguser.generateRefreshToken();
+        setAuthCookies(res, token, refreshToken);
         res.status(200).json({
             success: true,
             token,
             user: {
                 _id: existinguser._id,
                 email: existinguser.email,
+                role: existinguser.role || "user",
                 success: true
             }
         });
@@ -50,6 +47,14 @@ const adduser = async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long" });
+    }
+
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      return res.status(400).json({ message: "Password must contain a mix of letters and numbers" });
+    }
+
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "User already exists" });
@@ -60,14 +65,8 @@ const adduser = async (req, res) => {
 
     
     const token = newUser.generateToken();
-
-    res.cookie("authToken", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    const refreshToken = newUser.generateRefreshToken();
+    setAuthCookies(res, token, refreshToken);
 
  
     return res.status(201).json({
@@ -77,6 +76,7 @@ const adduser = async (req, res) => {
       user: {
         _id: newUser._id,
         email: newUser.email,
+        role: newUser.role || "user",
       }
     });
 

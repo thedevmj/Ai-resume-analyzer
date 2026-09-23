@@ -6,16 +6,22 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 connectDb();
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(apiLimiter);
 
 // Enhanced CORS configuration
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"];
+    const devOrigins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"];
+    const extraOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+    const allowedOrigins = [...devOrigins, ...extraOrigins];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -36,6 +42,7 @@ app.get('/', (req, res) => {
   res.send('Main server working');
 });
 
-app.listen(5000, () => {
-  console.log("Main server running on 5000");
+const PORT = parseInt(process.env.PORT, 10) || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Main server running on ${PORT}`);
 });

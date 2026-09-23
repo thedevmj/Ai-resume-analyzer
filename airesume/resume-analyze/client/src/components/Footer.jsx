@@ -1,88 +1,74 @@
-import React from "react";
 import {
   FaGithub,
   FaLinkedin,
-  FaTwitter,
-  FaInstagram,
   FaWhatsapp,
 } from "react-icons/fa";
+import Reveal from "./Reveal";
 
 
 const Footer = () => {
   return (
-    <footer className="bg-[#e0e5ec] py-10 px-6">
+    <footer className="bg-[#1b120f] py-10 px-6 border-t border-white/10">
       <div className="max-w-7xl mx-auto">
         
         {/* Main Footer */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Brand */}
-          <div className="p-6 rounded-3xl bg-[#e0e5ec] shadow-[8px_8px_16px_#bec3c9,-8px_-8px_16px_#ffffff]">
-            <h2 className="text-2xl font-bold text-gray-700 mb-4">
-              Ai Resume Analyzer
-            </h2>
+          <Reveal delay={0}>
+            <div className="h-full p-6 rounded-3xl bg-[#241814] border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/40">
+              <h2 className="text-2xl font-bold text-amber-50 mb-4">
+                Ai Resume Analyzer
+              </h2>
 
-            <p className="text-gray-600 leading-7">
-              Creating elegant and modern user experiences with soft UI and
-              scalable technologies.
-            </p>
-          </div>
-
-          {/* Links */}
-          <div className="p-6 rounded-3xl bg-[#e0e5ec] shadow-[8px_8px_16px_#bec3c9,-8px_-8px_16px_#ffffff]">
-            <h3 className="text-xl font-semibold text-gray-700 mb-5">
-              Quick Links
-            </h3>
-
-            <ul className="space-y-4">
-              {["Home", "About", "Projects", "Contact"].map((item) => (
-                <li key={item}>
-                  <a
-                    href={`/${item.toLowerCase()}`}
-                    className="text-gray-600 hover:text-gray-800 transition duration-300"
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <p className="text-stone-400 leading-7">
+                Creating elegant and modern user experiences with AI-powered
+                resume analysis and scalable technologies.
+              </p>
+            </div>
+          </Reveal>
 
           {/* Social */}
-          <div className="p-6 rounded-3xl bg-[#e0e5ec] shadow-[8px_8px_16px_#bec3c9,-8px_-8px_16px_#ffffff]">
-            <h3 className="text-xl font-semibold text-gray-700 mb-5">
-              Connect
-            </h3>
+          <Reveal delay={120}>
+            <div className="h-full p-6 rounded-3xl bg-[#241814] border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/40">
+              <h3 className="text-xl font-semibold text-amber-50 mb-5">
+                Connect
+              </h3>
 
-            <div className="flex gap-5">
-              {[
-                { icon: <FaGithub />, link: "https://github.com/thedevmj" },
-                { icon: <FaLinkedin />, link: "https://www.linkedin.com/in/junaid-mansuri-5ab04a376?utm_source=share_via&utm_content=profile&utm_medium=member_android" },
-                 {icon : <FaWhatsapp/>, link:"https://wa.me/919649354858?text=Hello%20I%20want%20to%20know%20more" }
-              ].map((social, index) => (
-                <a
-                  key={index}
-                  href={social.link}
-                  className="
-                    w-14 h-14 flex items-center justify-center
-                    rounded-2xl text-gray-700 text-xl
-                    bg-[#e0e5ec]
-                    shadow-[6px_6px_12px_#bec3c9,-6px_-6px_12px_#ffffff]
-                    hover:shadow-[inset_4px_4px_8px_#bec3c9,inset_-4px_-4px_8px_#ffffff]
-                    transition-all duration-300
-                  "
-                >
-                  {social.icon}
-                </a>
-              ))}
+              <div className="flex gap-4">
+                {[
+                  { icon: <FaGithub />, link: "https://github.com/thedevmj" },
+                  { icon: <FaLinkedin />, link: "https://www.linkedin.com/in/junaid-mansuri-devmj" },
+                  {icon : <FaWhatsapp/>, link:"https://wa.me/919649354858?text=Hello%20I%20want%20to%20know%20more" }
+                ].map((social, index) => (
+                  <a
+                    key={index}
+                    href={social.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="
+                      w-12 h-12 flex items-center justify-center
+                      rounded-xl text-stone-400 text-lg
+                      bg-white/5
+                      border border-white/10
+                      hover:border-rose-500/50 hover:text-amber-200
+                      hover:bg-rose-500/10
+                      hover:-translate-y-1
+                      transition-all duration-300
+                    "
+                  >
+                    {social.icon}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
+          </Reveal>
         </div>
 
         {/* Bottom */}
-        <div className="mt-10 text-center">
-          <p className="text-gray-500 text-sm">
-            © 2026 Ai Resume Analyzer. Crafted with Soft UI Design.
+        <div className="mt-10 pt-6 border-t border-white/10 text-center">
+          <p className="text-stone-500 text-sm">
+            © 2026 Ai Resume Analyzer. Crafted with professional care.
           </p>
         </div>
       </div>

@@ -1,10 +1,11 @@
-import React, { Suspense, lazy, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Suspense, lazy, useState } from "react";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import IsLoggedin from "./security/IsLoggedin";
+import IsAdmin from "./security/IsAdmin";
 
 
 const Upload = lazy(() => import("./pages/Upload"));
@@ -16,6 +17,7 @@ const Admindash = lazy(() => import("./admin/Admindash"));
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const location = useLocation();
 
   return (
     <>
@@ -24,11 +26,18 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: "#f0f0f3",
-            color: "#555",
+            background: "#241814",
+            color: "#fdf6ec",
+            border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: "12px",
-            boxShadow:
-              "6px 6px 10px #d1d1d4, -6px -6px 10px #ffffff",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+          },
+          success: {
+            iconTheme: { primary: "#16a34a", secondary: "#ffffff" },
+          },
+          error: {
+            style: { borderColor: "rgba(239,68,68,0.4)" },
+            iconTheme: { primary: "#ef4444", secondary: "#ffffff" },
           },
         }}
       />
@@ -42,20 +51,24 @@ export default function App() {
       
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-[#e0e5ec]">
+          <div className="min-h-screen flex items-center justify-center bg-[#1b120f]">
             <div
               className="
                 w-20 h-20 rounded-full
-                border-4 border-gray-300
-                border-t-gray-700
+                border-4 border-white/10
+                border-t-rose-500
                 animate-spin
-                shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff]
+                shadow-[0_0_40px_rgba(225,29,72,0.25)]
               "
             />
           </div>
         }
       >
-        <Routes>
+        <div
+          key={location.pathname}
+          className="animate-fade-up"
+        >
+          <Routes>
          
           <Route
             path="/"
@@ -65,7 +78,11 @@ export default function App() {
           
           <Route
             path="/fileupload"
-            element={<Upload />}
+            element={
+              <IsLoggedin>
+                <Upload />
+              </IsLoggedin>
+            }
           />
 
           
@@ -95,9 +112,14 @@ export default function App() {
           {/* ADMIN */}
           <Route
             path="/admindash"
-            element={<Admindash />}
+            element={
+              <IsAdmin>
+                <Admindash />
+              </IsAdmin>
+            }
           />
         </Routes>
+        </div>
       </Suspense>
 
       

@@ -1,24 +1,48 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-import axios from "axios";
+import { axiosClient as axios } from "../api/axiosClient";
 import { useNavigate } from "react-router-dom";
+import { gsap } from "gsap";
+import { FaCheck } from "react-icons/fa";
+import { API_URL } from "../config";
+import useSEO from "../hooks/useSEO";
 import "./Dashboard.css";
 
 // Configure axios globally for credentials
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "http://localhost:5000";
+axios.defaults.baseURL = API_URL;
 
 export default function Dashboard() {
+  useSEO({
+    title: "Dashboard",
+    description: "View your saved resume reports, scores and AI feedback history.",
+  });
  
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [error, setError] = useState(null);
+  const statsRef = useRef(null);
+  const sidebarRef = useRef(null);
+  const detailRef = useRef(null);
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
+  const countUp = (target, el, isScore = false) => {
+    if (!el) return;
+    const duration = 900;
+    const start = performance.now();
+    const from = 0;
+
+    const step = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(from + (target - from) * eased);
+      el.textContent = isScore ? `${value}%` : value;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+  };
 
   const fetchReports = async () => {
     setLoading(true);
@@ -70,6 +94,25 @@ export default function Dashboard() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !error && reports.length > 0) {
+      const t = setTimeout(() => {
+        gsap.fromTo(
+          "[data-stagger]",
+          { y: 24, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.55, ease: "power3.out", stagger: 0.1 },
+        );
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [loading, error, reports]);
+
   const getReportScore = (report) => {
     // Handle multiple possible score locations
     return report?.analysis?.score || report?.score || 0;
@@ -119,6 +162,25 @@ export default function Dashboard() {
     console.error("Stats calculation failed:", e);
   }
 
+  // Count-up stat values + animate report detail when available
+  useEffect(() => {
+    if (stats && statsRef.current) {
+      const values = statsRef.current.querySelectorAll("[data-count]");
+      values.forEach((el) => {
+        const target = Number(el.dataset.count) || 0;
+        countUp(target, el, true);
+      });
+    }
+    if (selectedReport && detailRef.current) {
+      const items = detailRef.current.querySelectorAll("[data-stagger]");
+      gsap.fromTo(
+        [...items],
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.55, ease: "power3.out", stagger: 0.08, overwrite: "auto" },
+      );
+    }
+  }, [stats, selectedReport]);
+
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -166,21 +228,21 @@ export default function Dashboard() {
 
       {/* Statistics Overview */}
       {stats && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-value">{stats.avgScore}%</div>
+        <div className="stats-grid" ref={statsRef}>
+          <div className="stat-card" data-stagger>
+            <div className="stat-value" data-count={stats.avgScore}>0%</div>
             <div className="stat-label">Average Score</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.maxScore}%</div>
+          <div className="stat-card" data-stagger>
+            <div className="stat-value" data-count={stats.maxScore}>0%</div>
             <div className="stat-label">Best Score</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card" data-stagger>
             <div className="stat-value">{stats.totalAnalyses}</div>
             <div className="stat-label">Total Analyses</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{stats.latestScore}%</div>
+          <div className="stat-card" data-stagger>
+            <div className="stat-value" data-count={stats.latestScore}>0%</div>
             <div className="stat-label">Latest Score</div>
           </div>
         </div>
@@ -188,7 +250,7 @@ export default function Dashboard() {
 
       <div className="dashboard-content">
         {/* Reports History Sidebar */}
-        <div className="reports-sidebar">
+        <div className="reports-sidebar" ref={sidebarRef}>
           <h3>Analysis History</h3>
           <div className="reports-list">
             {reports.map((report) => (
@@ -220,8 +282,8 @@ export default function Dashboard() {
 
         {/* Main Report View */}
         {selectedReport && (
-          <div className="report-detail">
-            <div className="report-header">
+          <div className="report-detail" ref={detailRef}>
+            <div className="report-header" data-stagger>
               <h2>{selectedReport.name || "Resume Analysis"}</h2>
               <p>
                 Analyzed on{" "}
@@ -232,7 +294,7 @@ export default function Dashboard() {
             </div>
 
             {/* Score Card */}
-            <div className="score-card">
+            <div className="score-card" data-stagger>
               <div className="score-circle">
                 <svg viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="45" className="score-circle-bg" />
@@ -280,9 +342,9 @@ export default function Dashboard() {
             {/* Strengths and Weaknesses Grid */}
             <div className="analysis-grid">
               {/* Strengths */}
-              <div className="analysis-card strengths-card">
+              <div className="analysis-card strengths-card" data-stagger>
                 <div className="card-header">
-                  <h3>💪 Strengths</h3>
+                  <h3>Strengths</h3>
                   <span className="badge">
                     {selectedReport.analysis?.strengths?.length || 0}
                   </span>
@@ -292,7 +354,7 @@ export default function Dashboard() {
                   selectedReport.analysis.strengths.length > 0 ? (
                     selectedReport.analysis.strengths.map((strength, idx) => (
                       <li key={idx} className="strength-item">
-                        <span className="checkmark">✓</span>
+                        <span className="checkmark"><FaCheck /></span>
                         {strength}
                       </li>
                     ))
@@ -303,9 +365,9 @@ export default function Dashboard() {
               </div>
 
               {/* Weaknesses */}
-              <div className="analysis-card weaknesses-card">
+              <div className="analysis-card weaknesses-card" data-stagger>
                 <div className="card-header">
-                  <h3>⚠️ Weaknesses</h3>
+                  <h3>Weaknesses</h3>
                   <span className="badge">
                     {selectedReport.analysis?.weaknesses?.length || 0}
                   </span>
@@ -328,8 +390,8 @@ export default function Dashboard() {
 
             {/* Skills Section */}
             <div className="skills-section">
-              <div className="skills-card">
-                <h3>✨ Current Skills</h3>
+              <div className="skills-card" data-stagger>
+                <h3>Current Skills</h3>
                 <div className="skills-tags">
                   {selectedReport.analysis?.skills &&
                   selectedReport.analysis.skills.length > 0 ? (
@@ -344,8 +406,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="skills-card">
-                <h3>🎯 Missing Skills</h3>
+              <div className="skills-card" data-stagger>
+                <h3>Missing Skills</h3>
                 <div className="skills-tags missing">
                   {selectedReport.analysis?.missing_skills &&
                   selectedReport.analysis.missing_skills.length > 0 ? (
@@ -364,8 +426,8 @@ export default function Dashboard() {
             {/* Suggestions */}
             {selectedReport.analysis?.suggestions &&
               selectedReport.analysis.suggestions.length > 0 && (
-                <div className="suggestions-card">
-                  <h3>💡 Suggestions for Improvement</h3>
+                <div className="suggestions-card" data-stagger>
+                  <h3>Suggestions for Improvement</h3>
                   <ol className="suggestions-list">
                     {selectedReport.analysis.suggestions.map(
                       (suggestion, idx) => (

@@ -1,9 +1,7 @@
-import React from 'react'
-
 export default function Admindash () {
   return (
     <>
-    <div className='min-h-screen bg-[#dfe7ef] flex items-center justify-center '></div>
+    <div className='min-h-screen bg-[#1b120f] flex items-center justify-center '></div>
     </>
   )
 }

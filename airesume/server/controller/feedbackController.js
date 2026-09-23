@@ -3,42 +3,67 @@ const axios = require('axios');
 
 // Fallback function to generate feedback when API fails
 const generateFallbackFeedback = (analysis) => {
+    const score = typeof analysis.score === 'number' ? analysis.score : 60;
+    const targetRole = analysis.target_role || 'Software Engineer';
+    const name = analysis.name && analysis.name !== 'Resume Analysis' ? analysis.name : null;
+    const strengths = Array.isArray(analysis.strengths) && analysis.strengths.length > 0
+        ? analysis.strengths : ['a solid professional foundation'];
+    const weaknesses = Array.isArray(analysis.weaknesses) && analysis.weaknesses.length > 0
+        ? analysis.weaknesses : ['limited quantifiable achievements'];
+    const missing = Array.isArray(analysis.missing_skills) && analysis.missing_skills.length > 0
+        ? analysis.missing_skills : ['Cloud technologies', 'System design'];
+
+    const firstWord = (s) => {
+        const t = String(s || '').trim();
+        return t.charAt(0).toUpperCase() + t.slice(1);
+    };
+
+    const scoreBand =
+        score >= 90 ? 'is excellent and nearly ATS-perfect for its target role' :
+        score >= 75 ? 'is strong and largely ATS-optimized' :
+        score >= 60 ? 'is decent but not yet fully ATS-optimized' :
+        score >= 40 ? 'falls short of what ATS filters typically expect' :
+        'is missing too much key information to pass most ATS filters';
+
+    const greeting = name ? `${name}, your` : 'Your';
+    const rolePhrase = `for ${targetRole} roles`;
+
     return {
-        overall_assessment: `Your resume demonstrates a foundation of professional skills with a current ATS score of ${analysis.score}%. Focus on quantifying achievements and incorporating industry-specific keywords to improve your score. The resume is well-formatted and includes key professional information.`,
-        career_recommendation: "Based on your skills and experience, consider focusing on roles that leverage your identified strengths. Work on developing the missing technical skills to expand your career opportunities.",
+        overall_assessment: `${greeting} resume ${scoreBand} — it currently scores ${score}/100 ${rolePhrase}. Where it shines: ${firstWord(strengths[0])}; also noteworthy is ${String(weaknesses[0] || 'detail').toLowerCase()} as the main gap. The clearest quick wins are to address ${String(missing.slice(0, 2).join(' and ').toLowerCase() || 'missing in-demand skills')} and to back up your ${String(strengths[0] || 'claims').toLowerCase()} with measurable numbers, which typically has the largest impact on ATS scores for ${targetRole} openings.`,
+        career_recommendation: `For a ${targetRole} trajectory, lean harder into ${String(missing[0] || 'in-demand skills').toLowerCase()} and ${String(missing[1] || 'project depth').toLowerCase()} — 2026 recruiters consistently screen for those before scheduling interviews. Pair them with concrete, quantified project outcomes.`,
         interview_tips: [
-            "Start with a strong opening statement about your most impressive achievement using the STAR method",
-            "Prepare specific examples of overcoming challenges related to the missing skills you're developing",
-            "Practice discussing your technical skills with concrete project examples and measurable outcomes",
+            `Start with a strong opening statement about your most impressive ${targetRole}-relevant achievement using the STAR method`,
+            `Prepare specific examples of overcoming challenges related to ${String(missing[0] || 'the skills you are developing').toLowerCase()}`,
+            `Practice discussing ${String(strengths[0] || 'your technical skills').toLowerCase()} with concrete project examples and measurable outcomes`,
             "Research the company thoroughly and prepare thoughtful questions about their challenges and culture"
         ],
         cover_letter_suggestions: {
-            opening: "Dear Hiring Manager, I am excited to apply for the [Position] role as my background in [Your Field] and passion for [Industry] align perfectly with your company's mission.",
+            opening: `Dear Hiring Manager, I am excited to apply for the ${targetRole} role as my background in ${String(strengths[0] || 'my field').toLowerCase()} and passion for ${String(targetRole).toLowerCase()} align perfectly with your company's mission.`,
             body_points: [
-                "Highlight specific achievements with quantifiable results that match the job description",
+                `Highlight the specific achievement behind this resume strength: ${String(strengths[0] || 'your top result').toLowerCase()}`,
                 "Connect your experience to the company's current projects or challenges",
-                "Demonstrate knowledge of the company's culture and explain why you're a good fit"
+                `Demonstrate how your work on ${String(strengths[1] || 'relevant projects').toLowerCase()} maps to the role's responsibilities`
             ],
             closing: "I would welcome the opportunity to discuss how my skills and enthusiasm can contribute to your team's success."
         },
         skill_development_plan: {
-            priority_skills: analysis.missing_skills?.slice(0, 2) || ["Cloud Technologies", "Advanced Problem Solving"],
+            priority_skills: missing.slice(0, 2),
             learning_resources: [
-                "Online platforms: Coursera, Udemy, Pluralsight",
-                "Practice projects on GitHub or personal portfolio",
+                `Targeted ${targetRole} courses on Coursera, Udemy, or Pluralsight`,
+                "Practice projects on GitHub or a personal portfolio",
                 "Technical documentation and official tutorials",
                 "Peer learning and mentorship programs"
             ],
-            estimated_timeline: "8-12 weeks of consistent practice to develop proficiency in priority skills"
+            estimated_timeline: `8-12 weeks of consistent practice to develop proficiency in ${String(missing[0] || 'priority skills').toLowerCase()}`
         },
         optimization_checklist: [
-            "Add quantifiable metrics and percentages to all achievements",
+            `Add quantifiable metrics to every bullet that supports your ${targetRole} story`,
+            `Weave in keywords like ${String(missing.slice(0, 2).join(' and ').toLowerCase() || 'role-specific terms')} verbatim from target job postings`,
             "Include relevant technical certifications and achievements",
             "Expand project descriptions with tech stack and outcomes",
-            "Highlight leadership, collaboration, and communication skills",
             "Use ATS-optimized keywords from your target job descriptions"
         ],
-        motivation_boost: `You're on the right track! Your identified strengths ${analysis.strengths?.slice(0, 2)?.join(' and ') || 'show promise'}. With focused effort on developing the recommended skills, you'll significantly improve your resume's competitiveness. Every step toward improvement brings you closer to your dream opportunity!`
+        motivation_boost: `You're on the right track — ${String(strengths[0] || 'your strengths').toLowerCase()} gives you a genuine edge for ${targetRole}. Close the gap on ${String(missing[0] || 'the missing skill').toLowerCase()} and you'll be a much stronger applicant; every step brings you closer to your dream opportunity!`
     };
 };
 
@@ -64,6 +89,8 @@ const generateDetailedFeedback = async (req, res) => {
         const feedbackPrompt = `
 You are a professional career coach and resume expert. Based on the following resume analysis, provide detailed, actionable feedback in JSON format.
 
+CRITICAL: Every field must be UNIQUE and SPECIFIC to this exact resume. Reference the detected role, the exact score, the candidate's actual strengths/weaknesses, and their specific missing skills. Write as a human coach evaluating THIS document — never a generic template. Two different resumes must produce clearly different assessments.
+
 Resume Analysis:
 Score: ${analysis.score}
 Name: ${analysis.name}
@@ -78,7 +105,7 @@ Current Suggestions: ${analysis.suggestions?.join(', ')}
 
 Please provide comprehensive feedback in this EXACT JSON format:
 {
-  "overall_assessment": "1-2 paragraph assessment of the resume",
+  "overall_assessment": "1-2 paragraph assessment that NAMES the candidate's detected role, states their exact score, cites their actual strengths, and pinpoints their biggest weakness and top missing skills to fix",
   "career_recommendation": "Career path recommendations based on skills and experience",
   "interview_tips": [
     "Tip 1 (start with a strong opening statement about your most impressive achievement)",
@@ -113,14 +140,14 @@ Return STRICT JSON ONLY. No explanation. No text outside JSON.
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-            const response = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.SAMBANOVA_API_KEY}`,
+                    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'DeepSeek-V3.1',
+                    model: 'openai/gpt-oss-120b',
                     messages: [
                         { role: 'system', content: 'You are a professional career coach.' },
                         { role: 'user', content: feedbackPrompt }

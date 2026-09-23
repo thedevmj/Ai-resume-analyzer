@@ -8,55 +8,61 @@
   display: flex;
   gap: 10px;
   margin-bottom: 30px;
-  border-bottom: 2px solid #e0e0e0;
   flex-wrap: wrap;
 }
 
 .tab-button {
   padding: 12px 20px;
-  border: none;
-  background-color: #f5f5f5;
-  color: #333;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #241814;
+  color: #cbb9ad;
   cursor: pointer;
   font-size: 16px;
-  font-weight: 500;
-  border-radius: 4px 4px 0 0;
+  font-weight: 600;
+  border-radius: 12px;
   transition: all 0.3s ease;
-  margin-bottom: -2px;
+  margin-bottom: 4px;
 }
 
 .tab-button:hover {
-  background-color: #e8e8e8;
+  background: #2e221b;
+  color: #fdf3e7;
+  border-color: rgba(244, 63, 94, 0.4);
+  transform: translateY(-2px);
 }
 
 .tab-button.active {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
   color: white;
-  border-bottom: 3px solid #0056b3;
+  border-color: #e11d48;
+  box-shadow: 0 8px 25px rgba(225, 29, 72, 0.35);
 }
 
 .feedback-content {
-  animation: fadeIn 0.3s ease-in;
+  animation: fadeUp 0.4s ease-out;
 }
 
-@keyframes fadeIn {
+@keyframes fadeUp {
   from {
     opacity: 0;
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .feedback-section {
-  background: white;
+  background: #241814;
   padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
 }
 
 .feedback-section h2 {
-  color: #007bff;
+  color: #fcd34d;
   font-size: 24px;
   margin-top: 25px;
   margin-bottom: 15px;
@@ -70,7 +76,7 @@
 }
 
 .feedback-section h3 {
-  color: #333;
+  color: #fdf3e7;
   font-size: 18px;
   margin-top: 20px;
   margin-bottom: 12px;
@@ -78,13 +84,13 @@
 
 .assessment-text,
 .recommendation-text {
-  color: #555;
+  color: #e7d9cd;
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #f8f9fa;
-  border-left: 4px solid #007bff;
+  background-color: #2b1e17;
+  border-left: 4px solid #e11d48;
   border-radius: 4px;
 }
 
@@ -94,18 +100,18 @@
 }
 
 .tips-list li {
-  color: #555;
+  color: #e7d9cd;
   font-size: 15px;
   line-height: 1.6;
   padding: 12px 15px;
   margin-bottom: 10px;
-  background-color: #f8f9fa;
-  border-left: 4px solid #28a745;
+  background-color: #2b1e17;
+  border-left: 4px solid #10b981;
   border-radius: 4px;
 }
 
 .skill-plan {
-  background-color: #f8f9fa;
+  background-color: #2b1e17;
   padding: 20px;
   border-radius: 6px;
   margin: 15px 0;
@@ -118,29 +124,22 @@
 }
 
 .skill-plan li {
-  color: #555;
+  color: #e7d9cd;
   font-size: 15px;
   padding: 8px 0;
-  padding-left: 20px;
-  position: relative;
-}
-
-.skill-plan li:before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: #28a745;
-  font-weight: bold;
+  padding-left: 15px;
+  border-left: 3px solid #10b981;
+  margin-bottom: 4px;
 }
 
 .timeline {
   margin-top: 15px;
-  color: #007bff;
+  color: #fb7185;
   font-weight: 500;
 }
 
 .checklist {
-  background-color: #f8f9fa;
+  background-color: #2b1e17;
   padding: 20px;
   border-radius: 6px;
   margin: 15px 0;
@@ -157,17 +156,18 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
+  accent-color: #e11d48;
 }
 
 .checklist-item label {
-  color: #555;
+  color: #e7d9cd;
   font-size: 15px;
   cursor: pointer;
   flex: 1;
 }
 
 .motivation-box {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
   color: white;
   padding: 25px;
   border-radius: 8px;
@@ -192,20 +192,20 @@
 }
 
 .question-card {
-  background-color: #f8f9fa;
+  background-color: #2b1e17;
   padding: 20px;
   border-radius: 6px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid #fb7185;
 }
 
 .question-card h4 {
-  color: #333;
+  color: #fdf3e7;
   margin: 0 0 10px 0;
   font-size: 16px;
 }
 
 .tip-text {
-  color: #666;
+  color: #cbb9ad;
   font-size: 15px;
   line-height: 1.5;
   margin: 0;
@@ -218,16 +218,16 @@
 }
 
 .mistake-item {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
   padding: 15px;
   border-radius: 6px;
-  border-left: 4px solid #ffc107;
+  border-left: 4px solid #f59e0b;
   font-size: 15px;
 }
 
 .cover-letter-box {
-  background-color: #f8f9fa;
+  background-color: #2b1e17;
   padding: 30px;
   border-radius: 8px;
   margin: 20px 0;
@@ -239,13 +239,13 @@
 }
 
 .letter-part h3 {
-  color: #007bff;
+  color: #fdba74;
   font-size: 16px;
   margin: 0 0 10px 0;
 }
 
 .letter-part p {
-  color: #555;
+  color: #e7d9cd;
   font-size: 15px;
   line-height: 1.6;
   margin: 0;
@@ -259,7 +259,7 @@
 }
 
 .aid-section h3 {
-  color: #333;
+  color: #fdf3e7;
   font-size: 16px;
   margin: 0 0 12px 0;
 }
@@ -273,32 +273,34 @@
 .phrase-tag,
 .verb-tag {
   display: inline-block;
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
   padding: 8px 12px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
+  border: 1px solid rgba(244, 63, 94, 0.25);
 }
 
 .verb-tag {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
+  background-color: rgba(252, 211, 77, 0.12);
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.25);
 }
 
 .feedback-loading {
   text-align: center;
   padding: 50px;
   font-size: 18px;
-  color: #007bff;
+  color: #fb7185;
 }
 
 .feedback-error {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(225, 29, 72, 0.12);
+  color: #fda4af;
   padding: 20px;
   border-radius: 6px;
-  border: 1px solid #f5c6cb;
+  border: 1px solid rgba(225, 29, 72, 0.35);
   margin: 20px 0;
 }
 
@@ -316,7 +318,7 @@
   }
 
   .tab-button {
-    border-radius: 4px;
+    border-radius: 12px;
     margin-bottom: 0;
   }
 

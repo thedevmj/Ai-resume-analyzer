@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { axiosClient as axios } from "../api/axiosClient";
+import { API_URL } from "../config";
 import "./Feedback.css";
 
 export default function Feedback({ reportId }) {
@@ -10,19 +11,13 @@ export default function Feedback({ reportId }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (reportId) {
-      fetchAllFeedback();
-    }
-  }, [reportId]);
-
   const fetchAllFeedback = async () => {
     setLoading(true);
     setError(null);
     try {
       // Fetch detailed feedback
       const feedbackRes = await axios.get(
-        `http://localhost:5000/upload/feedback/${reportId}`,
+        `${API_URL}/upload/feedback/${reportId}`,
         {
           headers:{
             "Content-Type": "application/json",
@@ -34,7 +29,7 @@ export default function Feedback({ reportId }) {
 
       // Fetch interview tips
       const interviewRes = await axios.get(
-        `http://localhost:5000/upload/feedback/${reportId}/interview-tips`,
+        `${API_URL}/upload/feedback/${reportId}/interview-tips`,
         {
           headers:{
             "Content-Type": "application/json",
@@ -46,7 +41,7 @@ export default function Feedback({ reportId }) {
 
       // Fetch cover letter suggestions
       const letterRes = await axios.get(
-        `http://localhost:5000/upload/feedback/${reportId}/cover-letter`,
+        `${API_URL}/upload/feedback/${reportId}/cover-letter`,
         {
           headers:{
             "Content-Type": "application/json",
@@ -62,8 +57,33 @@ export default function Feedback({ reportId }) {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (reportId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchAllFeedback();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportId]);
+
   if (loading) {
-    return <div className="feedback-loading">Loading AI feedback...</div>;
+    return (
+      <div className="feedback-container">
+        <div className="feedback-tabs">
+          <div className="h-11 w-28 shimmer rounded-lg" />
+          <div className="h-11 w-28 shimmer rounded-lg" />
+          <div className="h-11 w-28 shimmer rounded-lg" />
+        </div>
+        <div className="feedback-section" style={{ padding: "30px" }}>
+          <div className="h-6 w-1/2 shimmer rounded mb-6" />
+          <div className="h-4 w-full shimmer rounded mb-3" />
+          <div className="h-4 w-full shimmer rounded mb-3" />
+          <div className="h-4 w-3/4 shimmer rounded mb-8" />
+          <div className="h-6 w-1/3 shimmer rounded mb-6" />
+          <div className="h-4 w-full shimmer rounded mb-3" />
+          <div className="h-4 w-2/3 shimmer rounded" />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -77,41 +97,41 @@ export default function Feedback({ reportId }) {
           className={`tab-button ${activeTab === "overview" ? "active" : ""}`}
           onClick={() => setActiveTab("overview")}
         >
-          📋 Overview
+          Overview
         </button>
         <button
           className={`tab-button ${activeTab === "interview" ? "active" : ""}`}
           onClick={() => setActiveTab("interview")}
         >
-          🎯 Interview Tips
+          Interview Tips
         </button>
         <button
           className={`tab-button ${activeTab === "cover" ? "active" : ""}`}
           onClick={() => setActiveTab("cover")}
         >
-          📝 Cover Letter
+Cover Letter
         </button>
       </div>
 
-      <div className="feedback-content">
+      <div className="feedback-content" key={activeTab}>
         {activeTab === "overview" && feedback && (
           <div className="feedback-section">
-            <h2>💼 Overall Assessment</h2>
+            <h2>Overall Assessment</h2>
             <p className="assessment-text">{feedback.overall_assessment}</p>
 
-            <h2>🚀 Career Recommendations</h2>
+            <h2>Career Recommendations</h2>
             <p className="recommendation-text">
               {feedback.career_recommendation}
             </p>
 
-            <h2>💡 Interview Tips</h2>
+            <h2>Interview Tips</h2>
             <ul className="tips-list">
               {feedback.interview_tips?.map((tip, idx) => (
                 <li key={idx}>{tip}</li>
               ))}
             </ul>
 
-            <h2>🎓 Skill Development Plan</h2>
+            <h2>Skill Development Plan</h2>
             <div className="skill-plan">
               <h3>Priority Skills</h3>
               <ul>
@@ -137,7 +157,7 @@ export default function Feedback({ reportId }) {
               </p>
             </div>
 
-            <h2>✅ Optimization Checklist</h2>
+            <h2>Optimization Checklist</h2>
             <div className="checklist">
               {feedback.optimization_checklist?.map((item, idx) => (
                 <div key={idx} className="checklist-item">
@@ -148,7 +168,7 @@ export default function Feedback({ reportId }) {
             </div>
 
             <div className="motivation-box">
-              <h2>🌟 Motivation Boost</h2>
+              <h2>Motivation Boost</h2>
               <p>{feedback.motivation_boost}</p>
             </div>
           </div>
@@ -156,7 +176,7 @@ export default function Feedback({ reportId }) {
 
         {activeTab === "interview" && interviewTips && (
           <div className="feedback-section">
-            <h2>🎯 Interview Preparation</h2>
+            <h2>Interview Preparation</h2>
 
             <h3>Technical Questions</h3>
             <div className="questions-list">
@@ -193,7 +213,7 @@ export default function Feedback({ reportId }) {
             <div className="mistakes-list">
               {interviewTips.common_mistakes_to_avoid?.map((mistake, idx) => (
                 <div key={idx} className="mistake-item">
-                  ⚠️ {mistake}
+                  {mistake}
                 </div>
               ))}
             </div>
@@ -202,7 +222,7 @@ export default function Feedback({ reportId }) {
 
         {activeTab === "cover" && coverLetter && (
           <div className="feedback-section">
-            <h2>📝 Cover Letter Template</h2>
+            <h2>Cover Letter Template</h2>
 
             <div className="cover-letter-box">
               <div className="letter-part">
