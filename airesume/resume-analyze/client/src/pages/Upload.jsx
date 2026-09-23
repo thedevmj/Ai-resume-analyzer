@@ -135,7 +135,7 @@ export default function Upload() {
     setLoading(true);
     try {
       const res = await axios.post(
-        "${API_URL}/upload/download",
+        `${API_URL}/upload/download`,
         { ...result, format },
         { responseType: "blob", withCredentials: true },
       );
