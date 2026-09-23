@@ -9,6 +9,10 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const { apiLimiter } = require('./middleware/rateLimiter');
 
+// Trust the first proxy so rate limits are applied per real client IP
+// (required when deployed behind a reverse proxy / platform like Render)
+app.set('trust proxy', 1);
+
 connectDb();
 
 app.use(helmet({ contentSecurityPolicy: false }));
