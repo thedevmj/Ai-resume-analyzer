@@ -10,6 +10,8 @@ import {
   FaArrowRight,
 } from "react-icons/fa";
 import Feedback from "../components/Feedback";
+import { Spinner } from "../components/Loader";
+import Loader from "../components/Loader";
 import { API_URL } from "../config";
 import useSEO from "../hooks/useSEO";
 
@@ -23,6 +25,7 @@ export default function Upload() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
@@ -107,6 +110,7 @@ export default function Upload() {
     formData.append("resume", file);
 
     setLoading(true);
+    setAnalyzing(true);
 
     try {
       const res = await axios.post(`${API_URL}/upload`, formData, {
@@ -124,6 +128,7 @@ export default function Upload() {
     }
 
     setLoading(false);
+    setAnalyzing(false);
   };
 
   const downloadResume = async (format = "pdf") => {
@@ -259,7 +264,7 @@ export default function Upload() {
           >
             {loading ? (
               <span className="inline-flex items-center gap-2 justify-center">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Spinner />
                 Analyzing...
               </span>
             ) : (
@@ -273,6 +278,13 @@ export default function Upload() {
             </p>
           )}
         </div>
+
+        {/* Analyzing overlay */}
+        {analyzing && (
+          <div className="fixed inset-0 z-[60]">
+            <Loader message="AI is analyzing your resume..." />
+          </div>
+        )}
 
         {result && (
           <div ref={resultsRef} className="mt-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-6">

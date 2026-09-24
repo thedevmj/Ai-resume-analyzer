@@ -6,6 +6,7 @@ import { gsap } from "gsap";
 import { FaCheck } from "react-icons/fa";
 import { API_URL } from "../config";
 import useSEO from "../hooks/useSEO";
+import Loader from "../components/Loader";
 import "./Dashboard.css";
 
 // Configure axios globally for credentials
@@ -182,14 +183,7 @@ export default function Dashboard() {
   }, [stats, selectedReport]);
 
   if (loading) {
-    return (
-      <div className="dashboard-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading your analysis data...</p>
-        </div>
-      </div>
-    );
+    return <Loader message="Loading your analysis data..." />;
   }
 
   if (error) {

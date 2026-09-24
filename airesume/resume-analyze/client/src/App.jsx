@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import Loader from "./components/Loader";
 import IsLoggedin from "./security/IsLoggedin";
 import IsAdmin from "./security/IsAdmin";
 
@@ -51,17 +52,7 @@ export default function App() {
       
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-[#1b120f]">
-            <div
-              className="
-                w-20 h-20 rounded-full
-                border-4 border-white/10
-                border-t-rose-500
-                animate-spin
-                shadow-[0_0_40px_rgba(225,29,72,0.25)]
-              "
-            />
-          </div>
+          <Loader message="Loading..."/>
         }
       >
         <div
